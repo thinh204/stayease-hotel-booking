@@ -1,0 +1,57 @@
+{
+  "Home": {
+    "title": "Find your perfect stay",
+    "description": "Discover great hotels at the best prices, worldwide."
+  },
+  "Navbar": {
+    "hotels": "Hotels",
+    "deals": "Deals",
+    "destinations": "Destinations",
+    "support": "Support",
+    "account": "Account",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "selectLanguage": "Select language",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu"
+  },
+  "Auth": {
+    "signInTitle": "Sign In",
+    "signInDescription": "Sign in to your StayEase account.",
+    "signUpTitle": "Sign Up",
+    "signUpDescription": "Create your StayEase account."
+  },
+  "Hotels": {
+    "title": "Hotels",
+    "description": "Find your perfect stay.",
+    "viewHotel": "View Grand Bay Resort",
+    "hotelLabel": "Hotel",
+    "detailDescription": "Hotel detail page"
+  },
+  "Deals": {
+    "title": "Deals",
+    "description": "Discover our best hotel deals."
+  },
+  "Destinations": {
+    "title": "Destinations",
+    "description": "Explore destinations around the world."
+  },
+  "Support": {
+    "title": "Support",
+    "description": "How can we help you?"
+  },
+  "Account": {
+    "title": "My Account",
+    "description": "Manage your StayEase account.",
+    "guestName": "StayEase Guest",
+    "memberSince": "Member since 2026",
+    "fullName": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "language": "Language",
+    "currentLanguage": "English",
+    "bookingsTitle": "Your bookings",
+    "bookingsDescription": "Your upcoming and past stays will appear here.",
+    "findStay": "Find a stay"
+  }
+}

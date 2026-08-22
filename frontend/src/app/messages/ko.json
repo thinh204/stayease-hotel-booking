@@ -1,0 +1,57 @@
+{
+  "Home": {
+    "title": "완벽한 숙소를 찾아보세요",
+    "description": "전 세계의 멋진 호텔을 최고의 가격으로 만나보세요."
+  },
+  "Navbar": {
+    "hotels": "호텔",
+    "deals": "특가",
+    "destinations": "여행지",
+    "support": "고객 지원",
+    "account": "계정",
+    "signIn": "로그인",
+    "signUp": "회원가입",
+    "selectLanguage": "언어 선택",
+    "openMenu": "탐색 메뉴 열기",
+    "closeMenu": "탐색 메뉴 닫기"
+  },
+  "Auth": {
+    "signInTitle": "로그인",
+    "signInDescription": "StayEase 계정에 로그인하세요.",
+    "signUpTitle": "회원가입",
+    "signUpDescription": "StayEase 계정을 만드세요."
+  },
+  "Hotels": {
+    "title": "호텔",
+    "description": "완벽한 숙소를 찾아보세요.",
+    "viewHotel": "Grand Bay Resort 보기",
+    "hotelLabel": "호텔",
+    "detailDescription": "호텔 상세 페이지"
+  },
+  "Deals": {
+    "title": "특가",
+    "description": "최고의 호텔 특가를 확인해 보세요."
+  },
+  "Destinations": {
+    "title": "여행지",
+    "description": "전 세계의 여행지를 탐험해 보세요."
+  },
+  "Support": {
+    "title": "고객 지원",
+    "description": "무엇을 도와드릴까요?"
+  },
+  "Account": {
+    "title": "내 계정",
+    "description": "StayEase 계정을 관리하세요.",
+    "guestName": "StayEase 게스트",
+    "memberSince": "2026년부터 회원",
+    "fullName": "이름",
+    "email": "이메일",
+    "phone": "전화번호",
+    "language": "언어",
+    "currentLanguage": "한국어",
+    "bookingsTitle": "예약 내역",
+    "bookingsDescription": "예정된 숙박과 지난 숙박이 여기에 표시됩니다.",
+    "findStay": "숙소 찾기"
+  }
+}

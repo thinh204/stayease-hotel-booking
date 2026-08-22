@@ -1,0 +1,57 @@
+{
+  "Home": {
+    "title": "Tìm nơi lưu trú hoàn hảo",
+    "description": "Khám phá những khách sạn tuyệt vời với mức giá tốt nhất."
+  },
+  "Navbar": {
+    "hotels": "Khách sạn",
+    "deals": "Ưu đãi",
+    "destinations": "Điểm đến",
+    "support": "Hỗ trợ",
+    "account": "Tài khoản",
+    "signIn": "Đăng nhập",
+    "signUp": "Đăng ký",
+    "selectLanguage": "Chọn ngôn ngữ",
+    "openMenu": "Mở menu điều hướng",
+    "closeMenu": "Đóng menu điều hướng"
+  },
+  "Auth": {
+    "signInTitle": "Đăng nhập",
+    "signInDescription": "Đăng nhập vào tài khoản StayEase của bạn.",
+    "signUpTitle": "Đăng ký",
+    "signUpDescription": "Tạo tài khoản StayEase của bạn."
+  },
+  "Hotels": {
+    "title": "Khách sạn",
+    "description": "Tìm nơi lưu trú hoàn hảo.",
+    "viewHotel": "Xem Grand Bay Resort",
+    "hotelLabel": "Khách sạn",
+    "detailDescription": "Trang chi tiết khách sạn"
+  },
+  "Deals": {
+    "title": "Ưu đãi",
+    "description": "Khám phá những ưu đãi khách sạn tốt nhất."
+  },
+  "Destinations": {
+    "title": "Điểm đến",
+    "description": "Khám phá các điểm đến trên khắp thế giới."
+  },
+  "Support": {
+    "title": "Hỗ trợ",
+    "description": "Chúng tôi có thể giúp gì cho bạn?"
+  },
+  "Account": {
+    "title": "Tài khoản của tôi",
+    "description": "Quản lý tài khoản StayEase của bạn.",
+    "guestName": "Khách StayEase",
+    "memberSince": "Thành viên từ năm 2026",
+    "fullName": "Họ và tên",
+    "email": "Email",
+    "phone": "Điện thoại",
+    "language": "Ngôn ngữ",
+    "currentLanguage": "Tiếng Việt",
+    "bookingsTitle": "Đặt phòng của bạn",
+    "bookingsDescription": "Các kỳ lưu trú sắp tới và trước đây sẽ hiển thị tại đây.",
+    "findStay": "Tìm nơi lưu trú"
+  }
+}

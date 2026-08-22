@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" width="260" height="56">
+  <g transform="translate(4, 6)">
+    <path d="M24 4 L46 24 L46 48 L2 48 L2 24 Z" fill="#2563EB"/>
+    <path d="M24 4 L46 24 L2 24 Z" fill="#1D4ED8"/>
+    <rect x="19" y="32" width="10" height="16" rx="1.5" fill="#FFFFFF"/>
+    <rect x="8" y="30" width="7" height="7" rx="1" fill="#BFDBFE"/>
+  </g>
+  <text x="60" y="38" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#0F172A">Stay</text>
+  <text x="122" y="38" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#2563EB">Ease</text>
+</svg>
