@@ -1,17 +1,27 @@
-import { getTranslations } from "next-intl/server";
+import React from "react";
+import HeroBanner from "@/components/home/HeroBanner";
+import FeaturedHotels from "@/components/home/FeaturedHotels";
+import CuratedDestinations from "@/components/home/CuratedDestinations";
+import VipPerks from "@/components/home/VipPerks";
+import TestimonialsSection from "@/components/home/TestimonialsSection";
 
-export default async function HomePage() {
-  const t = await getTranslations("Home");
-
+export default function HomePage() {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-4xl font-bold text-slate-900">
-        {t("title")}
-      </h1>
+    <div className="flex flex-col min-h-screen bg-white dark:bg-slate-950">
+      {/* 1. Hero & Instant Search */}
+      <HeroBanner />
 
-      <p className="mt-3 text-slate-600">
-        {t("description")}
-      </p>
-    </main>
+      {/* 2. Featured 5-Star Luxury Hotels */}
+      <FeaturedHotels />
+
+      {/* 3. Curated Global Travel Destinations */}
+      <CuratedDestinations />
+
+      {/* 4. StayEase VIP Perks & Concierge Services */}
+      <VipPerks />
+
+      {/* 5. World Traveler Testimonials */}
+      <TestimonialsSection />
+    </div>
   );
 }

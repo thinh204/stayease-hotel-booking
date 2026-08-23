@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 
 export const navLinks = [
-  { key: "hotels", href: "/" },
-  { key: "deals", href: "/deals" },
-  { key: "destinations", href: "/destinations" },
-  { key: "support", href: "/support" },
+  { label: "Home", href: "/" },
+  { label: "Hotels", href: "/hotels" },
+  { label: "Deals", href: "/deals" },
+  { label: "Destinations", href: "/destinations" },
+  { label: "Support", href: "/support" },
 ];
 
 export default function NavbarLinks() {
-  const t = useTranslations("Navbar");
   const pathname = usePathname();
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
   const pathnameWithoutLocale = pathname.replace(/^\/(en|vi|ko)(?=\/|$)/, "") || "/";
@@ -24,20 +23,24 @@ export default function NavbarLinks() {
     <nav className="hidden items-center gap-8 lg:flex">
       {navLinks.map((link) => {
         const isActive =
-          pathnameWithoutLocale === link.href ||
-          (link.href !== "/" && pathnameWithoutLocale.startsWith(`${link.href}/`));
+          link.href === "/"
+            ? pathnameWithoutLocale === "/"
+            : pathnameWithoutLocale.startsWith(link.href);
 
         return (
           <Link
             key={link.href}
             href={getLocaleHref(link.href)}
-            className={`relative py-2 text-sm transition-colors ${
+            className={`relative py-2 text-sm font-medium transition-colors ${
               isActive
-                ? "font-semibold text-blue-600"
-                : "font-medium text-slate-600 hover:text-blue-600"
+                ? "font-semibold text-blue-400"
+                : "text-slate-300 hover:text-white"
             }`}
           >
-            {t(link.key)}
+            <span>{link.label}</span>
+            {isActive && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50" />
+            )}
           </Link>
         );
       })}

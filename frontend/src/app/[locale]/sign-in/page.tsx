@@ -1,12 +1,10 @@
-import { getTranslations } from "next-intl/server";
+import React, { Suspense } from "react";
+import CustomerSignIn from "@/components/auth/CustomerSignIn";
 
-export default async function SignInPage() {
-  const t = await getTranslations("Auth");
-
+export default function SignInPage() {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold">{t("signInTitle")}</h1>
-      <p className="mt-2 text-slate-600">{t("signInDescription")}</p>
-    </main>
+    <Suspense fallback={<div className="py-20 text-center text-slate-400">Loading sign in portal...</div>}>
+      <CustomerSignIn />
+    </Suspense>
   );
 }

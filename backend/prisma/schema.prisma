@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// USER MODEL
+// Roles: "USER", "MANAGER", "ADMIN"
+// ========================================
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  fullName      String
+  phone         String?
+  avatar        String?
+  bio           String?
+  role          String      @default("USER") // USER, MANAGER, ADMIN
+  isActive      Boolean     @default(true)
+  lastLogin     DateTime?
+  loginAttempts Int         @default(0)
+  isLocked      Boolean     @default(false)
+  lockedUntil   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  bookings      Booking[]
+  reviews       Review[]
+  auditLogs     AuditLog[]
+  managedHotels Hotel[]     @relation("ManagerHotels")
+
+  @@index([role])
+  @@index([isActive])
+  @@index([email])
+  @@map("users")
+}
+
+// ========================================
+// HOTEL MODEL
+// ========================================
+model Hotel {
+  id              String      @id @default(cuid())
+  name            String
+  description     String
+  city            String
+  country         String
+  address         String
+  pricePerNight   Float
+  rating          Float       @default(5.0)
+  images          String      @default("[]") // JSON string array of URLs
+  amenities       String      @default("[]") // JSON string array of amenities
+  isActive        Boolean     @default(true)
+  managerId       String?
+  createdBy       String      @default("ADMIN")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  rooms           Room[]
+  bookings        Booking[]
+  reviews         Review[]
+  manager         User?       @relation("ManagerHotels", fields: [managerId], references: [id])
+
+  @@index([city, country])
+  @@index([rating])
+  @@index([isActive])
+  @@index([managerId])
+  @@map("hotels")
+}
+
+// ========================================
+// ROOM MODEL
+// ========================================
+model Room {
+  id              String      @id @default(cuid())
+  hotelId         String
+  type            String      // Deluxe, Presidential Suite, Ocean Villa, etc.
+  price           Float
+  capacity        Int         @default(2)
+  totalRooms      Int         @default(10)
+  availableRooms  Int         @default(10)
+  amenities       String      @default("[]") // JSON string array
+  images          String      @default("[]") // JSON string array
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  hotel           Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+
+  @@index([hotelId])
+  @@map("rooms")
+}
+
+// ========================================
+// BOOKING MODEL
+// ========================================
+model Booking {
+  id              String      @id @default(cuid())
+  reference       String      @unique // e.g. "BK-98214"
+  userId          String
+  hotelId         String
+  roomId          String?
+  checkIn         DateTime
+  checkOut        DateTime
+  nights          Int         @default(1)
+  guests          Int         @default(1)
+  totalPrice      Float
+  status          String      @default("confirmed") // pending, confirmed, cancelled, completed
+  paymentStatus   String      @default("completed") // pending, completed, refunded
+  specialRequests String?
+  refundAmount    Float?      @default(0)
+  refundReason    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel           Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  room            Room?       @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([hotelId])
+  @@index([status])
+  @@index([checkIn, checkOut])
+  @@map("bookings")
+}
+
+// ========================================
+// REVIEW MODEL
+// ========================================
+model Review {
+  id              String      @id @default(cuid())
+  userId          String
+  hotelId         String
+  rating          Int         @default(5)
+  comment         String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel           Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// ========================================
+// AUDIT LOGGING
+// ========================================
+model AuditLog {
+  id            String      @id @default(cuid())
+  userId        String
+  action        String      // CREATE_HOTEL, EDIT_BOOKING, LOCK_USER, etc.
+  entity        String      // Hotel, Booking, User, Settings, etc.
+  entityId      String?     // ID of affected entity
+  description   String
+  oldValues     String?     // JSON string
+  newValues     String?     // JSON string
+  ipAddress     String?
+  userAgent     String?
+  status        String      @default("success") // success, error
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ========================================
+// ADMIN SETTINGS
+// ========================================
+model AdminSettings {
+  id                      String      @id @default(cuid())
+  platformName            String      @default("StayEase Luxury Hotels")
+  platformDescription     String?
+  logo                    String?
+  favicon                 String?
+  primaryColor            String      @default("#1e40af")
+  secondaryColor          String      @default("#7c3aed")
+  maintenanceMode         Boolean     @default(false)
+  maintenanceMessage      String?     @default("StayEase is currently undergoing scheduled maintenance. Please check back shortly.")
+  contactEmail            String?     @default("support@stayease.com")
+  supportPhone            String?     @default("+1 (800) 782-9327")
+  timezone                String      @default("UTC+07:00")
+  currency                String      @default("USD")
+  maxLoginAttempts        Int         @default(5)
+  lockoutDuration         Int         @default(30) // minutes
+  sessionTimeout          Int         @default(1440) // minutes (24 hours)
+  enableEmailVerification Boolean     @default(true)
+  enableTwoFactor         Boolean     @default(false)
+  emailProvider           String      @default("smtp")
+  smtpHost                String?     @default("smtp.mailtrap.io")
+  smtpPort                Int?        @default(2525)
+  smtpUser                String?     @default("stayease-support")
+  smtpPassword            String?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  @@map("admin_settings")
+}
+
+// ========================================
+// USER STATISTICS & REPORTS
+// ========================================
+model UserStatistics {
+  id                  String      @id @default(cuid())
+  date                DateTime    @default(now())
+  totalUsers          Int         @default(0)
+  newUsersToday       Int         @default(0)
+  activeUsersToday    Int         @default(0)
+  totalBookingsToday  Int         @default(0)
+  totalRevenueToday   Float       @default(0)
+  averageBookingValue Float       @default(0)
+  cancellationRate    Float       @default(0)
+  createdAt           DateTime    @default(now())
+
+  @@index([date])
+  @@map("user_statistics")
+}
