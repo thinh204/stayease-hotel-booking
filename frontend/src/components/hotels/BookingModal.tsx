@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   X,
@@ -13,6 +13,9 @@ import {
   BedDouble,
   User,
   Users,
+  Landmark,
+  Smartphone,
+  WalletCards,
 } from "lucide-react";
 import { customerApi } from "@/lib/customer-api";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
@@ -49,10 +52,32 @@ export default function BookingModal({
   const [checkOut, setCheckOut] = useState(defaultCheckOut.toISOString().split("T")[0]);
   const [guests, setGuests] = useState(2);
   const [specialRequests, setSpecialRequests] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("visa");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null);
+  const [pendingBooking, setPendingBooking] = useState<any | null>(null);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [paymentReference] = useState(() => `PAY-${Date.now().toString().slice(-10)}`);
+  const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
 
   // Price calculations
   const selectedRoom = rooms.find((r: any) => r.id === selectedRoomId);
@@ -68,6 +93,18 @@ export default function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (checkOut <= checkIn) {
+      setError("Check-out date must be after check-in date.");
+      return;
+    }
+    if (selectedRoom && guests > selectedRoom.capacity) {
+      setError(`This room allows up to ${selectedRoom.capacity} guests.`);
+      return;
+    }
+    if (["visa", "mastercard", "bank"].includes(paymentMethod) && cardNumber.replace(/\s/g, "").length < 12) {
+      setError("Please enter a valid sandbox card number.");
+      return;
+    }
     if (!isAuthenticated) {
       router.push(`/${currentLocale}/sign-in?redirect=${encodeURIComponent(pathname)}`);
       return;
@@ -83,11 +120,12 @@ export default function BookingModal({
         checkOut,
         guests,
         specialRequests,
+        paymentMethod,
+        paymentReference,
       });
 
       if (res.success && res.data) {
-        setBookingSuccess(res.data);
-        if (onSuccess) onSuccess();
+        setPendingBooking(res.data);
       }
     } catch (err: any) {
       setError(err.message || "Failed to confirm reservation. Please check your dates.");
@@ -96,15 +134,41 @@ export default function BookingModal({
     }
   };
 
+  const handleConfirmPayment = async () => {
+    if (!pendingBooking) return;
+    setConfirmingPayment(true);
+    setError(null);
+    try {
+      const response = await customerApi.confirmPayment(pendingBooking.id, { paymentMethod, paymentReference });
+      if (response.success) {
+        setBookingSuccess(response.data);
+        setPendingBooking(null);
+        if (onSuccess) onSuccess();
+      }
+    } catch (err: any) {
+      setError(err.message || "Payment confirmation failed.");
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="booking-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <div className="relative w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden my-8">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
           <div className="flex items-center gap-2.5">
             <Sparkles size={22} className="text-blue-600 dark:text-blue-400" />
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+              <h2 id="booking-title" className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                 Reserve Your Stay at {hotel.name}
               </h2>
               <span className="text-xs text-slate-500">{hotel.city}, {hotel.country}</span>
@@ -114,6 +178,7 @@ export default function BookingModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close booking dialog"
             className="p-2 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X size={20} />
@@ -121,7 +186,34 @@ export default function BookingModal({
         </div>
 
         {/* Success Confirmation State */}
-        {bookingSuccess ? (
+        {pendingBooking ? (
+          <div className="p-8 text-center space-y-6">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950">
+              <CreditCard size={32} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Đang chờ thanh toán</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                Đơn <strong>{pendingBooking.reference}</strong> chưa được xác nhận. Hãy hoàn tất thanh toán qua {paymentMethod.toUpperCase()} trước.
+              </p>
+            </div>
+            <div className="mx-auto max-w-md rounded-2xl border border-dashed border-blue-300 bg-blue-50 p-5 text-left text-sm dark:border-blue-800 dark:bg-blue-950/30">
+              <div className="flex justify-between"><span>Số tiền</span><strong>${total.toLocaleString()}</strong></div>
+              <div className="mt-2 flex justify-between"><span>Mã giao dịch</span><strong className="font-mono">{paymentReference}</strong></div>
+              <div className="mt-2 flex justify-between"><span>Trạng thái</span><strong className="text-amber-600">Chưa thanh toán</strong></div>
+            </div>
+            {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <button type="button" onClick={() => setPendingBooking(null)} className="rounded-xl border border-slate-200 px-5 py-3 text-xs font-bold dark:border-slate-700">
+                Quay lại
+              </button>
+              <button type="button" onClick={handleConfirmPayment} disabled={confirmingPayment} className="rounded-xl bg-emerald-600 px-6 py-3 text-xs font-bold text-white disabled:opacity-50">
+                {confirmingPayment ? "Đang xác minh callback..." : "Mô phỏng đã chuyển tiền thành công"}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400">Trong production, nút này được thay bằng callback có chữ ký từ cổng thanh toán.</p>
+          </div>
+        ) : bookingSuccess ? (
           <div className="p-8 text-center space-y-6 animate-in zoom-in-95">
             <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <CheckCircle2 size={36} />
@@ -232,8 +324,17 @@ export default function BookingModal({
                 <input
                   type="date"
                   required
+                  min={today}
                   value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
+                  onChange={(e) => {
+                    setCheckIn(e.target.value);
+                    if (checkOut <= e.target.value) {
+                      const nextDate = new Date(`${e.target.value}T00:00:00`);
+                      nextDate.setDate(nextDate.getDate() + 1);
+                      setCheckOut(nextDate.toISOString().split("T")[0]);
+                    }
+                    setError(null);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                 />
               </div>
@@ -245,8 +346,12 @@ export default function BookingModal({
                 <input
                   type="date"
                   required
+                  min={checkIn || today}
                   value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                  onChange={(e) => {
+                    setCheckOut(e.target.value);
+                    setError(null);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                 />
               </div>
@@ -260,10 +365,11 @@ export default function BookingModal({
                   onChange={(e) => setGuests(Number(e.target.value))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                 >
-                  <option value={1}>1 Guest</option>
-                  <option value={2}>2 Guests</option>
-                  <option value={3}>3 Guests</option>
-                  <option value={4}>4 Guests</option>
+                  {[1, 2, 3, 4, 5, 6]
+                    .filter((count) => !selectedRoom || count <= selectedRoom.capacity)
+                    .map((count) => (
+                      <option key={count} value={count}>{count} {count === 1 ? "Guest" : "Guests"}</option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -283,6 +389,47 @@ export default function BookingModal({
             </div>
 
             {/* Price Summary Breakdown */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white">Phương thức thanh toán</h3>
+                <p className="mt-1 text-xs text-slate-500">Chế độ sandbox — không phát sinh giao dịch tiền thật.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {[
+                  { id: "visa", label: "Visa", icon: WalletCards },
+                  { id: "mastercard", label: "Mastercard", icon: CreditCard },
+                  { id: "bank", label: "Ngân hàng", icon: Landmark },
+                  { id: "momo", label: "MoMo", icon: Smartphone },
+                  { id: "zalopay", label: "ZaloPay", icon: Smartphone },
+                  { id: "vnpay", label: "VNPAY", icon: Smartphone },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => { setPaymentMethod(id); setError(null); }}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-xs font-bold transition ${paymentMethod === id ? "border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-500/10 dark:bg-blue-950/40 dark:text-blue-300" : "border-slate-200 dark:border-slate-800"}`}
+                  >
+                    <Icon size={17} /> {label}
+                  </button>
+                ))}
+              </div>
+
+              {["visa", "mastercard", "bank"].includes(paymentMethod) ? (
+                <div className="grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950">
+                  <input required value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, "").slice(0, 19))} placeholder="Số thẻ sandbox" className="col-span-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900" />
+                  <input required value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Tên chủ thẻ" className="col-span-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 uppercase dark:border-slate-800 dark:bg-slate-900" />
+                  <input required value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value.slice(0, 5))} placeholder="MM/YY" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900" />
+                  <input required value={cardCvv} onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="CVV" type="password" className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900" />
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 p-5 text-center dark:border-blue-800 dark:bg-blue-950/20">
+                  <Smartphone className="mx-auto h-8 w-8 text-blue-600" />
+                  <p className="mt-2 font-bold">Thanh toán bằng {paymentMethod === "momo" ? "MoMo" : paymentMethod === "zalopay" ? "ZaloPay" : "VNPAY"}</p>
+                  <p className="mt-1 text-xs text-slate-500">Sau khi xác nhận, hệ thống sandbox sẽ mô phỏng bước chuyển sang ứng dụng và nhận kết quả callback.</p>
+                </div>
+              )}
+            </div>
+
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>${pricePerNight} × {nights} Nights</span>
@@ -309,7 +456,7 @@ export default function BookingModal({
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || checkOut <= checkIn || (selectedRoom && guests > selectedRoom.capacity)}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/25 transition"
               >
                 {loading ? "Securing Reservation..." : "Confirm & Instant Book"}

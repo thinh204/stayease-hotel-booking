@@ -19,9 +19,11 @@ import {
   Crown,
   MapPin,
   ChevronRight,
+  Heart,
 } from "lucide-react";
 import { customerApi } from "@/lib/customer-api";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
+import HotelCard from "@/components/hotels/HotelCard";
 
 export default function CustomerAccountView() {
   const router = useRouter();
@@ -29,8 +31,9 @@ export default function CustomerAccountView() {
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
   const { user, logout, isAuthenticated, refreshProfile } = useCustomerAuth();
 
-  const [activeTab, setActiveTab] = useState<"bookings" | "profile">("bookings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "favorites" | "profile">("bookings");
   const [bookings, setBookings] = useState<any[]>([]);
+  const [favoriteHotels, setFavoriteHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingBooking, setCancellingBooking] = useState<any | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -42,6 +45,22 @@ export default function CustomerAccountView() {
     bio: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
+
+  const fetchFavorites = async () => {
+    const favoriteIds = JSON.parse(localStorage.getItem("stayease-favorites") || "[]") as string[];
+    if (favoriteIds.length === 0) {
+      setFavoriteHotels([]);
+      return;
+    }
+    try {
+      const response = await customerApi.getHotels();
+      if (response.success) {
+        setFavoriteHotels(response.data.filter((hotel) => favoriteIds.includes(hotel.id)));
+      }
+    } catch (error) {
+      console.error("Failed to load favorite hotels", error);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated && !localStorage.getItem("stayease_customer_token")) {
@@ -59,6 +78,13 @@ export default function CustomerAccountView() {
 
     fetchBookings();
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    fetchFavorites();
+    const syncFavorites = () => fetchFavorites();
+    window.addEventListener("stayease-favorites-updated", syncFavorites);
+    return () => window.removeEventListener("stayease-favorites-updated", syncFavorites);
+  }, []);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -195,6 +221,21 @@ export default function CustomerAccountView() {
           </button>
           <button
             type="button"
+            onClick={() => {
+              setActiveTab("favorites");
+              fetchFavorites();
+            }}
+            className={`pb-3 transition relative flex items-center gap-2 ${
+              activeTab === "favorites"
+                ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 font-bold"
+                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <Heart size={16} />
+            <span>Đã lưu ({favoriteHotels.length})</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("profile")}
             className={`pb-3 transition relative flex items-center gap-2 ${
               activeTab === "profile"
@@ -289,6 +330,38 @@ export default function CustomerAccountView() {
                       )}
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "favorites" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Khách sạn yêu thích</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Danh sách được lưu trên thiết bị này để bạn dễ dàng quay lại so sánh và đặt phòng.
+              </p>
+            </div>
+            {favoriteHotels.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-slate-800 dark:bg-slate-900">
+                <Heart className="mx-auto h-10 w-10 text-slate-300" />
+                <h3 className="mt-4 font-bold text-slate-900 dark:text-white">Bạn chưa lưu khách sạn nào</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                  Nhấn biểu tượng trái tim trên thẻ khách sạn để tạo danh sách cho chuyến đi tiếp theo.
+                </p>
+                <Link
+                  href={`/${currentLocale}/hotels`}
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-bold text-white"
+                >
+                  Khám phá khách sạn <ChevronRight size={15} />
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {favoriteHotels.map((hotel) => (
+                  <HotelCard key={hotel.id} hotel={hotel} />
                 ))}
               </div>
             )}

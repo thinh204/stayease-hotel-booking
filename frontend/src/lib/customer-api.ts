@@ -37,6 +37,15 @@ export const customerApi = {
     return handleResponse<{ success: boolean; data: any }>(res);
   },
 
+  async createReview(hotelId: string, data: { rating: number; comment: string }) {
+    const res = await fetch(`${API_BASE}/hotels/${hotelId}/reviews`, {
+      method: "POST",
+      headers: getCustomerAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{ success: boolean; data: any; message: string }>(res);
+  },
+
   // Auth
   async login(credentials: { email: string; password: string }) {
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -73,8 +82,17 @@ export const customerApi = {
   },
 
   // Bookings
-  async createBooking(data: { hotelId: string; roomId?: string; checkIn: string; checkOut: string; guests?: number; specialRequests?: string }) {
+  async createBooking(data: { hotelId: string; roomId?: string; checkIn: string; checkOut: string; guests?: number; specialRequests?: string; paymentMethod?: string; paymentReference?: string }) {
     const res = await fetch(`${API_BASE}/bookings`, {
+      method: "POST",
+      headers: getCustomerAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<{ success: boolean; message: string; data: any }>(res);
+  },
+
+  async confirmPayment(bookingId: string, data: { paymentMethod: string; paymentReference: string }) {
+    const res = await fetch(`${API_BASE}/bookings/${bookingId}/payments/confirm`, {
       method: "POST",
       headers: getCustomerAuthHeaders(),
       body: JSON.stringify(data),

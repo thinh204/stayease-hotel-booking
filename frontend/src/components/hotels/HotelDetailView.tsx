@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { customerApi } from "@/lib/customer-api";
 import BookingModal from "@/components/hotels/BookingModal";
+import { useCustomerAuth } from "@/lib/customer-auth-context";
 
 interface HotelDetailViewProps {
   slug: string;
@@ -33,24 +34,50 @@ interface HotelDetailViewProps {
 export default function HotelDetailView({ slug }: HotelDetailViewProps) {
   const pathname = usePathname();
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
+  const { isAuthenticated } = useCustomerAuth();
 
   const [hotel, setHotel] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | undefined>(undefined);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [favorite, setFavorite] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewStatus, setReviewStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const loadHotel = async () => {
+    const res = await customerApi.getHotelBySlug(slug);
+    if (res.success && res.data) setHotel(res.data);
+  };
 
   useEffect(() => {
     customerApi
       .getHotelBySlug(slug)
-      .then((res) => {
-        if (res.success && res.data) {
-          setHotel(res.data);
-        }
-      })
+      .then((res) => { if (res.success && res.data) setHotel(res.data); })
       .catch((e) => console.error("Error loading hotel details", e))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const submitReview = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!isAuthenticated) {
+      setReviewStatus({ type: "error", text: "Vui lòng đăng nhập để gửi đánh giá." });
+      return;
+    }
+    setSubmittingReview(true);
+    setReviewStatus(null);
+    try {
+      const response = await customerApi.createReview(hotel.id, { rating: reviewRating, comment: reviewComment });
+      setReviewStatus({ type: "success", text: response.message });
+      setReviewComment("");
+      await loadHotel();
+    } catch (error: any) {
+      setReviewStatus({ type: "error", text: error.message || "Không thể gửi đánh giá." });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -315,6 +342,43 @@ export default function HotelDetailView({ slug }: HotelDetailViewProps) {
               <h2 className="text-2xl font-bold font-heading">
                 Guest Reviews ({reviews.length})
               </h2>
+
+              <form onSubmit={submitReview} className="rounded-3xl border border-blue-100 bg-blue-50/50 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Chia sẻ trải nghiệm của bạn</h3>
+                    <p className="mt-1 text-xs text-slate-500">Chỉ khách có đơn đã xác nhận mới có thể đăng đánh giá.</p>
+                  </div>
+                  <div className="flex gap-1" aria-label={`${reviewRating} trên 5 sao`}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button key={star} type="button" onClick={() => setReviewRating(star)} aria-label={`${star} sao`}>
+                        <Star className={`h-6 w-6 ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  required
+                  minLength={10}
+                  maxLength={1000}
+                  value={reviewComment}
+                  onChange={(event) => setReviewComment(event.target.value)}
+                  placeholder="Dịch vụ, phòng nghỉ và trải nghiệm của bạn như thế nào?"
+                  className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  rows={4}
+                />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-xs text-slate-400">{reviewComment.length}/1000 ký tự</span>
+                  <button disabled={submittingReview || reviewComment.trim().length < 10} className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    {submittingReview ? "Đang gửi..." : "Đăng đánh giá"}
+                  </button>
+                </div>
+                {reviewStatus && (
+                  <p role="status" className={`mt-3 text-xs font-semibold ${reviewStatus.type === "success" ? "text-emerald-600" : "text-red-600"}`}>
+                    {reviewStatus.text}
+                  </p>
+                )}
+              </form>
 
               {reviews.length === 0 ? (
                 <p className="text-xs text-slate-500">No reviews yet for this hotel.</p>

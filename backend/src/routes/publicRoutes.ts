@@ -342,16 +342,55 @@ router.put('/auth/profile', customerAuth, async (req: any, res: Response) => {
   }
 });
 
+// Create or update a verified guest review
+router.post('/hotels/:hotelId/reviews', customerAuth, async (req: any, res: Response): Promise<void> => {
+  const hotelId = String(req.params.hotelId);
+  const rating = Number(req.body.rating);
+  const comment = String(req.body.comment || '').trim();
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5 || comment.length < 10 || comment.length > 1000) {
+    res.status(400).json({ success: false, message: 'Rating must be 1–5 and comment must contain 10–1000 characters.' });
+    return;
+  }
+
+  try {
+    const eligibleBooking = await prisma.booking.findFirst({
+      where: { userId: req.user.id, hotelId, status: { in: ['confirmed', 'completed'] } },
+    });
+    if (!eligibleBooking) {
+      res.status(403).json({ success: false, message: 'Only guests with a confirmed or completed stay can review this hotel.' });
+      return;
+    }
+
+    const existing = await prisma.review.findFirst({ where: { userId: req.user.id, hotelId } });
+    const review = existing
+      ? await prisma.review.update({ where: { id: existing.id }, data: { rating, comment } })
+      : await prisma.review.create({ data: { userId: req.user.id, hotelId, rating, comment } });
+
+    const aggregate = await prisma.review.aggregate({ where: { hotelId }, _avg: { rating: true } });
+    await prisma.hotel.update({ where: { id: hotelId }, data: { rating: aggregate._avg.rating || rating } });
+    res.status(existing ? 200 : 201).json({ success: true, data: review, message: existing ? 'Review updated.' : 'Review published.' });
+  } catch (error) {
+    console.error('Review submission error:', error);
+    res.status(500).json({ success: false, message: 'Unable to publish review.' });
+  }
+});
+
 // ==========================================
 // 3. CUSTOMER BOOKINGS API
 // ==========================================
 
 // Create new customer booking
 router.post('/bookings', customerAuth, async (req: any, res: Response): Promise<void> => {
-  const { hotelId, roomId, checkIn, checkOut, guests, specialRequests } = req.body;
+  const { hotelId, roomId, checkIn, checkOut, guests, specialRequests, paymentMethod, paymentReference } = req.body;
+  const allowedPaymentMethods = ['visa', 'mastercard', 'bank', 'momo', 'zalopay', 'vnpay'];
 
   if (!hotelId || !checkIn || !checkOut) {
     res.status(400).json({ success: false, message: 'Hotel ID and stay dates are required.' });
+    return;
+  }
+  if (!allowedPaymentMethods.includes(paymentMethod)) {
+    res.status(400).json({ success: false, message: 'Please select a supported payment method.' });
     return;
   }
 
@@ -391,9 +430,9 @@ router.post('/bookings', customerAuth, async (req: any, res: Response): Promise<
         nights,
         guests: parseInt(guests) || 2,
         totalPrice,
-        status: 'confirmed',
-        paymentStatus: 'completed',
-        specialRequests: specialRequests || null,
+        status: 'pending',
+        paymentStatus: 'pending',
+        specialRequests: [`[Payment: ${paymentMethod.toUpperCase()} · ${paymentReference || 'SANDBOX'}]`, specialRequests].filter(Boolean).join(' '),
       },
       include: {
         hotel: true,
@@ -407,19 +446,59 @@ router.post('/bookings', customerAuth, async (req: any, res: Response): Promise<
       entity: 'Booking',
       entityId: booking.id,
       description: `Guest ${req.user.fullName} booked ${nights} nights at ${hotel.name} ($${totalPrice})`,
-      newValues: { reference: refCode, totalPrice, nights },
+      newValues: { reference: refCode, totalPrice, nights, paymentMethod, paymentReference },
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
     });
 
     res.status(201).json({
       success: true,
-      message: 'Your luxury reservation has been confirmed!',
+      message: 'Reservation created. Complete payment to confirm your stay.',
       data: booking,
     });
   } catch (error) {
     console.error('Booking error:', error);
     res.status(500).json({ success: false, message: 'Failed to process reservation.' });
+  }
+});
+
+// Sandbox payment callback. Production gateways must verify their signed server-to-server callback here.
+router.post('/bookings/:id/payments/confirm', customerAuth, async (req: any, res: Response): Promise<void> => {
+  const paymentReference = String(req.body.paymentReference || '').trim();
+  const paymentMethod = String(req.body.paymentMethod || '').trim();
+  if (!paymentReference || !['visa', 'mastercard', 'bank', 'momo', 'zalopay', 'vnpay'].includes(paymentMethod)) {
+    res.status(400).json({ success: false, message: 'Invalid payment confirmation.' });
+    return;
+  }
+  try {
+    const booking = await prisma.booking.findFirst({ where: { id: String(req.params.id), userId: req.user.id } });
+    if (!booking) {
+      res.status(404).json({ success: false, message: 'Reservation not found.' });
+      return;
+    }
+    if (booking.paymentStatus === 'completed') {
+      res.json({ success: true, data: booking, message: 'Payment was already confirmed.' });
+      return;
+    }
+    const confirmed = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: 'confirmed', paymentStatus: 'completed' },
+      include: { hotel: true, room: true },
+    });
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'PAYMENT_CONFIRMED',
+      entity: 'Booking',
+      entityId: booking.id,
+      description: `Sandbox payment ${paymentReference} confirmed via ${paymentMethod}`,
+      newValues: { paymentReference, paymentMethod, paymentStatus: 'completed' },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    res.json({ success: true, data: confirmed, message: 'Payment confirmed. Your reservation is now secured.' });
+  } catch (error) {
+    console.error('Payment confirmation error:', error);
+    res.status(500).json({ success: false, message: 'Unable to confirm payment.' });
   }
 });
 
