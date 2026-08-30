@@ -11,8 +11,11 @@ import {
   Users,
   ChevronDown,
   BadgeCheck,
-  Headphones,
   ShieldCheck,
+  Building2,
+  Waves,
+  Baby,
+  Sparkles,
 } from "lucide-react";
 
 export default function HeroBanner() {
@@ -65,6 +68,15 @@ export default function HeroBanner() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  const quickFilters = [
+    { label: currentLocale === "vi" ? "Ven biển" : "Beachfront", icon: Waves, city: "Da Nang" },
+    { label: currentLocale === "vi" ? "Nghỉ dưỡng phố" : "City Break", icon: Building2, city: "Ho Chi Minh City" },
+    { label: currentLocale === "vi" ? "Kỳ nghỉ sang trọng" : "Luxury Stay", icon: Sparkles, city: "ALL" },
+    { label: currentLocale === "vi" ? "Phù hợp gia đình" : "Family Friendly", icon: Baby, city: "Phu Quoc" },
+    { label: currentLocale === "vi" ? "Hồ bơi & Spa" : "Pool & Spa", icon: BadgeCheck, city: "ALL" },
+    { label: currentLocale === "vi" ? "Hủy miễn phí" : "Free Cancellation", icon: ShieldCheck, city: "ALL" },
+  ];
+
   const destinations = [
     { value: "ALL", label: copy.destinationPlaceholder },
     { value: "Da Nang", label: "Da Nang, Vietnam" },
@@ -94,7 +106,7 @@ export default function HeroBanner() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-white dark:bg-slate-950 pt-10 pb-12 lg:pt-14 lg:pb-16 select-none transition-colors">
+    <section className="relative min-h-[430px] overflow-hidden bg-sky-100 py-10 sm:py-12 lg:py-14 select-none">
       {/* Background Watercolor Coastal Image blending seamlessly in Light and Dark Mode */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <Image
@@ -103,32 +115,30 @@ export default function HeroBanner() {
           fill
           priority
           sizes="100vw"
-          className="h-full w-full object-cover object-right opacity-50 dark:opacity-20 transition-opacity"
+          className="h-full w-full object-cover object-center"
         />
         {/* Soft fading gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-transparent dark:from-slate-950 dark:via-slate-950/90 dark:to-transparent transition-colors" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white dark:from-slate-950 to-transparent transition-colors" />
-        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white dark:from-slate-950 to-transparent transition-colors" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-slate-950/10" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Left Heading & Subtitle */}
-        <div className="max-w-2xl space-y-3 mb-8">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#0f2744] dark:text-white font-serif leading-tight transition-colors">
+        <div className="mx-auto mb-8 max-w-3xl space-y-2 text-center">
+          <h1 className="text-4xl font-black tracking-tight text-[#081d42] drop-shadow-sm sm:text-5xl lg:text-[52px] lg:leading-tight">
             {t("title")}
           </h1>
-          <div className="text-slate-600 dark:text-slate-300 text-sm sm:text-base font-normal space-y-1 transition-colors">
+          <div className="text-base font-medium text-slate-700 sm:text-lg">
             <p>{t("description")}</p>
           </div>
         </div>
 
         {/* Floating Search Card */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 shadow-lg shadow-slate-100 dark:shadow-black/50 max-w-5xl transition-colors">
-          <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 sm:gap-3 items-center">
+        <div className="mx-auto max-w-5xl rounded-2xl border border-white/70 bg-white/95 p-3 shadow-2xl shadow-slate-900/20 backdrop-blur-xl sm:p-4">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 items-center gap-1 sm:grid-cols-2 lg:grid-cols-12">
             {/* 1. Destination (col-span-3) */}
-            <div className="lg:col-span-3 px-3 py-2 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <MapPin className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+                <MapPin className="h-5 w-5 text-blue-600" />
                 <span>{copy.destination}</span>
               </label>
               <div className="relative">
@@ -148,9 +158,9 @@ export default function HeroBanner() {
             </div>
 
             {/* 2. Check-in (col-span-2) */}
-            <div className="lg:col-span-2 px-3 py-2 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Calendar className="h-5 w-5 text-blue-600" />
                 <span>{copy.checkIn}</span>
               </label>
               <input
@@ -168,9 +178,9 @@ export default function HeroBanner() {
             </div>
 
             {/* 3. Check-out (col-span-2) */}
-            <div className="lg:col-span-2 px-3 py-2 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Calendar className="h-5 w-5 text-blue-600" />
                 <span>{copy.checkOut}</span>
               </label>
               <input
@@ -187,9 +197,9 @@ export default function HeroBanner() {
             </div>
 
             {/* 4. Guests (col-span-3) */}
-            <div className="lg:col-span-3 px-3 py-2 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <Users className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Users className="h-5 w-5 text-blue-600" />
                 <span>{copy.guests}</span>
               </label>
               <div className="relative">
@@ -212,7 +222,7 @@ export default function HeroBanner() {
             <div className="lg:col-span-2 p-1">
               <button
                 type="submit"
-                className="w-full h-11 px-5 rounded-xl bg-[#0066FF] hover:bg-blue-700 text-white font-semibold text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0876ed] px-5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700"
               >
                 <Search className="h-4 w-4" />
                 <span>{copy.search}</span>
@@ -226,14 +236,12 @@ export default function HeroBanner() {
           )}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-          {[BadgeCheck, ShieldCheck, Headphones].map((Icon, index) => (
-            <div key={copy.benefits[index]} className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
-                <Icon className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <span>{copy.benefits[index]}</span>
-            </div>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          {quickFilters.map(({ label, icon: Icon, city }) => (
+            <button key={label} type="button" onClick={() => setDestination(city)} className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600">
+              <Icon className="h-4 w-4 text-blue-600" />
+              {label}
+            </button>
           ))}
         </div>
       </div>

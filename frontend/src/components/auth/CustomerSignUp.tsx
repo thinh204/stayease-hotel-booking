@@ -1,153 +1,166 @@
 "use client";
 
-import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import {
-  Lock,
-  Mail,
-  User,
-  Phone,
-  Sparkles,
-  ArrowRight,
-  AlertCircle,
-} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { AlertCircle, Check, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
+import { CUSTOMER_API_BASE } from "@/lib/customer-api";
+
+const authImage =
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&auto=format&fit=crop&q=90";
 
 export default function CustomerSignUp() {
   const router = useRouter();
   const pathname = usePathname();
-  const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
-
+  const locale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "vi";
   const { register, loading } = useCustomerAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const startGoogleSignIn = () => {
+    window.location.assign(`${CUSTOMER_API_BASE}/auth/google?locale=${locale}`);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isVietnamese = locale === "vi";
+  const copy = isVietnamese
+    ? {
+        title: "Tạo tài khoản của bạn",
+        subtitle: "Tham gia StayEase và bắt đầu đặt phòng",
+        name: "Họ và tên",
+        email: "Địa chỉ email",
+        password: "Mật khẩu",
+        confirm: "Xác nhận mật khẩu",
+        agree: "Tôi đồng ý với",
+        terms: "Điều khoản & Chính sách bảo mật",
+        create: "Tạo tài khoản",
+        creating: "Đang tạo tài khoản...",
+        social: "HOẶC ĐĂNG KÝ VỚI",
+        existing: "Đã có tài khoản?",
+        signIn: "Đăng nhập",
+        passwordError: "Mật khẩu xác nhận không khớp.",
+        termsError: "Bạn cần đồng ý với điều khoản để tiếp tục.",
+        facebookUnavailable: "Đăng nhập Facebook chưa được cấu hình. Hãy thêm Facebook App ID và App Secret vào backend trước.",
+        googleUnavailable: "Đăng nhập Google chưa được cấu hình. Hãy thêm Google Client ID và Client Secret vào backend trước.",
+      }
+    : {
+        title: "Create your account",
+        subtitle: "Join StayEase and start booking",
+        name: "Full name",
+        email: "Email address",
+        password: "Password",
+        confirm: "Confirm password",
+        agree: "I agree to",
+        terms: "Terms & Privacy Policy",
+        create: "Create Account",
+        creating: "Creating account...",
+        social: "OR SIGN UP WITH",
+        existing: "Already have an account?",
+        signIn: "Sign in",
+        passwordError: "The password confirmation does not match.",
+        termsError: "Please accept the terms to continue.",
+        facebookUnavailable: "Facebook sign-in is not configured yet. Add the Facebook App ID and App Secret to the backend first.",
+        googleUnavailable: "Google sign-in is not configured yet. Add the Google Client ID and Client Secret to the backend first.",
+      };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError(copy.passwordError);
+      return;
+    }
+    if (!acceptedTerms) {
+      setError(copy.termsError);
+      return;
+    }
+
     try {
-      await register({ fullName, email, phone, password });
-      router.push(`/${currentLocale}/account`);
-    } catch (err: any) {
-      setError(err.message || "Failed to create account. Please try again.");
+      await register({ fullName: fullName.trim(), email: email.trim(), password });
+      router.push(`/${locale}/account`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to create account. Please try again.");
     }
   };
 
   return (
-    <div className="relative min-h-[85vh] flex items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-      <div className="relative w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-10 shadow-2xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25">
-            <Sparkles size={24} />
+    <section className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[#eef7ff] text-slate-900 dark:bg-slate-950 dark:text-white">
+      <Image src={authImage} alt="Luxury StayEase resort beside a tropical pool" fill priority sizes="100vw" className="object-cover object-center" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/70 to-white/95 dark:from-slate-950/50 dark:via-slate-950/75 dark:to-slate-950/95" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#eaf5ff]/45 via-transparent to-white/15" />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1440px] items-center gap-8 px-4 py-10 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:px-14 xl:gap-20 xl:px-20">
+        <div className="hidden self-stretch lg:flex lg:flex-col lg:justify-between lg:py-12">
+          <Link href={`/${locale}`} className="w-fit rounded-2xl bg-white/65 p-4 shadow-sm backdrop-blur-md">
+            <Image src="/icons/logo.svg" alt="StayEase" width={260} height={56} priority />
+            <span className="mt-1 block text-center text-[11px] font-bold tracking-[.42em] text-slate-700">HOTEL BOOKINGS</span>
+          </Link>
+          <div className="max-w-sm rounded-2xl border border-white/50 bg-white/50 p-5 text-sm text-slate-700 shadow-lg backdrop-blur-md">
+            <p className="font-extrabold text-slate-900">Stay beautifully. Book effortlessly.</p>
+            <p className="mt-1 text-xs leading-5">Exclusive hotels, secure payments and dedicated support for every journey.</p>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight font-heading">
-            Join StayEase VIP
-          </h1>
-          <p className="text-xs text-slate-500">
-            Enjoy guaranteed best hotel rates, free suite upgrades, and bespoke concierge services.
-          </p>
         </div>
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/80 border border-red-500/30 text-red-600 dark:text-red-300 text-xs font-semibold">
-            <AlertCircle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
+        <div className="mx-auto w-full max-w-[590px] rounded-[28px] border border-white/70 bg-white/94 p-6 shadow-[0_24px_70px_rgba(15,23,42,.22)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 sm:p-9 lg:p-11">
+          <Link href={`/${locale}`} className="mb-6 inline-flex lg:hidden"><Image src="/icons/logo.svg" alt="StayEase" width={190} height={42} priority /></Link>
+          <header>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#09204a] dark:text-white sm:text-[40px] sm:leading-tight">{copy.title}</h1>
+            <p className="mt-1.5 text-base text-slate-500 sm:text-lg">{copy.subtitle}</p>
+          </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs sm:text-sm">
-          <div>
-            <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
-              Full Legal Name
-            </label>
-            <div className="relative">
-              <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Lord Alexander Sterling"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-              />
+          {error && (
+            <div role="alert" className="mt-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/60 dark:text-red-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
-              Email Address
+          <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+            <label className="relative block">
+              <span className="sr-only">{copy.name}</span><User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input type="text" autoComplete="name" required value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder={copy.name} className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-4 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-blue-950" />
             </label>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="alexander@domain.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
-              Phone Number (Optional)
+            <label className="relative block">
+              <span className="sr-only">{copy.email}</span><Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={copy.email} className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-4 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-blue-950" />
             </label>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 019-2834"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold mb-1 text-slate-700 dark:text-slate-300">
-              Password
+            <label className="relative block">
+              <span className="sr-only">{copy.password}</span><LockKeyhole className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input type={showPassword ? "text" : "password"} autoComplete="new-password" required minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={copy.password} className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-12 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-blue-950" />
+              <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600">{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
             </label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-              />
-            </div>
+            <label className="relative block">
+              <span className="sr-only">{copy.confirm}</span><LockKeyhole className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" required minLength={6} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={copy.confirm} className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-12 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-blue-950" />
+              <button type="button" aria-label={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"} onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600">{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
+            </label>
+
+            <label className="flex cursor-pointer items-start gap-2.5 py-1 text-sm text-slate-600 dark:text-slate-300">
+              <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="sr-only" />
+              <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border ${acceptedTerms ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-950"}`}>{acceptedTerms && <Check className="h-3.5 w-3.5" />}</span>
+              <span>{copy.agree} <Link href={`/${locale}/support`} className="font-semibold text-blue-600 underline underline-offset-2">{copy.terms}</Link></span>
+            </label>
+
+            <Button type="submit" disabled={loading} className="h-13 w-full rounded-lg bg-gradient-to-r from-[#177ee8] to-[#1689ef] text-base font-bold text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-blue-600">
+              {loading && <LoaderCircle className="h-5 w-5 animate-spin" />}{loading ? copy.creating : copy.create}
+            </Button>
+          </form>
+
+          <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" /><span className="text-[11px] font-semibold tracking-[.28em] text-slate-500">{copy.social}</span><span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <button type="button" onClick={startGoogleSignIn} className="flex h-13 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><span className="text-xl font-extrabold text-blue-600">G</span>Google</button>
+            <button type="button" onClick={() => setError(copy.facebookUnavailable)} className="flex h-13 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#1877f2] text-lg font-extrabold text-white">f</span>Facebook</button>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2"
-          >
-            <span>{loading ? "Creating Account..." : "Join & Begin Journey"}</span>
-            <ArrowRight size={16} />
-          </button>
-        </form>
-
-        <div className="text-center pt-2 text-xs text-slate-500">
-          Already have an account?{" "}
-          <Link
-            href={`/${currentLocale}/sign-in`}
-            className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
-          >
-            Sign In Here
-          </Link>
+          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">{copy.existing} <Link href={`/${locale}/sign-in`} className="font-semibold text-blue-600 underline underline-offset-2">{copy.signIn}</Link></p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

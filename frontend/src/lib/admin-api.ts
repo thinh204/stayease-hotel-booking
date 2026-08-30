@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api/admin";
+const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || "http://localhost:5000/api/admin";
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("stayease_admin_token") : null;

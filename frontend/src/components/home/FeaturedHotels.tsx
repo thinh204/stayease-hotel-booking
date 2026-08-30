@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleDollarSign, Headphones, ShieldCheck } from "lucide-react";
 import HotelCard from "@/components/hotels/HotelCard";
 import BookingModal from "@/components/hotels/BookingModal";
 
@@ -78,7 +78,7 @@ export default function FeaturedHotels() {
   ];
 
   return (
-    <section className="py-14 bg-white dark:bg-slate-950 select-none">
+    <section className="bg-[#f7f9fc] py-8 dark:bg-slate-950 select-none">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Section Header */}
         <div className="flex items-end justify-between">
@@ -107,6 +107,7 @@ export default function FeaturedHotels() {
               key={hotel.id}
               hotel={hotel}
               onBookNow={(h) => setBookingHotel(h)}
+              compact
             />
           ))}
         </div>
@@ -119,6 +120,25 @@ export default function FeaturedHotels() {
           onClose={() => setBookingHotel(null)}
         />
       )}
+
+      <div className="mt-8 border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-slate-200 px-4 py-4 dark:divide-slate-800 lg:grid-cols-4">
+          {[
+            { icon: ShieldCheck, title: "Trusted Booking", text: "Secure & reliable" },
+            { icon: CircleDollarSign, title: "Best Price Guarantee", text: "We match & beat prices" },
+            { icon: Headphones, title: "24/7 Support", text: "We're here to help" },
+            { icon: BadgeCheck, title: "Verified Reviews", text: "Real guests, real feedback" },
+          ].map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex items-center gap-3 px-3 py-2 sm:px-6">
+              <Icon className="h-8 w-8 flex-none text-blue-600" strokeWidth={1.7} />
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white sm:text-sm">{title}</p>
+                <p className="text-[10px] text-slate-500 sm:text-xs">{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

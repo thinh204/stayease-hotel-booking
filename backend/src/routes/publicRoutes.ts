@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma.js';
 import { createAuditLog } from '../middlewares/audit.js';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -172,6 +173,98 @@ router.get('/hotels/:slugOrId', async (req: Request, res: Response): Promise<voi
 // ==========================================
 // 2. CUSTOMER AUTH API
 // ==========================================
+
+const getGoogleConfig = () => ({
+  clientId: process.env.GOOGLE_CLIENT_ID || '',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/public/auth/google/callback',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+});
+
+router.get('/auth/google', (req: Request, res: Response): void => {
+  const config = getGoogleConfig();
+  if (!config.clientId || !config.clientSecret) {
+    res.status(503).json({ success: false, message: 'Google sign-in is not configured.' });
+    return;
+  }
+
+  const locale = ['vi', 'en', 'ko'].includes(String(req.query.locale)) ? String(req.query.locale) : 'vi';
+  const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+  const state = jwt.sign({ purpose: 'google-oauth', locale }, secret, { expiresIn: '10m' });
+  const params = new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: config.callbackUrl,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+  });
+
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+router.get('/auth/google/callback', async (req: Request, res: Response): Promise<void> => {
+  const config = getGoogleConfig();
+  let locale = 'vi';
+  try {
+    if (!req.query.code || !req.query.state) throw new Error('Missing Google authorization response.');
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    const decoded = jwt.verify(String(req.query.state), secret) as { purpose?: string; locale?: string };
+    if (decoded.purpose !== 'google-oauth') throw new Error('Invalid OAuth state.');
+    if (decoded.locale && ['vi', 'en', 'ko'].includes(decoded.locale)) locale = decoded.locale;
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: String(req.query.code),
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        redirect_uri: config.callbackUrl,
+        grant_type: 'authorization_code',
+      }),
+    });
+    if (!tokenResponse.ok) throw new Error('Google token exchange failed.');
+    const googleTokens = await tokenResponse.json() as { access_token?: string };
+    if (!googleTokens.access_token) throw new Error('Google did not return an access token.');
+
+    const profileResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${googleTokens.access_token}` },
+    });
+    if (!profileResponse.ok) throw new Error('Unable to read Google profile.');
+    const profile = await profileResponse.json() as { email?: string; email_verified?: boolean; name?: string; picture?: string };
+    if (!profile.email || !profile.email_verified) throw new Error('A verified Google email is required.');
+
+    const email = profile.email.toLowerCase().trim();
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: profile.name || email.split('@')[0],
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+          avatar: profile.picture || null,
+          role: 'USER',
+          lastLogin: new Date(),
+        },
+      });
+    } else {
+      if (user.isLocked || !user.isActive) throw new Error('This StayEase account is unavailable.');
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date(), loginAttempts: 0, avatar: user.avatar || profile.picture || null },
+      });
+    }
+
+    const stayEaseToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
+    const safeUser = { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, bio: user.bio, role: user.role };
+    const encodedUser = Buffer.from(JSON.stringify(safeUser)).toString('base64url');
+    res.redirect(`${config.frontendUrl}/${locale}/auth/google/callback#token=${encodeURIComponent(stayEaseToken)}&user=${encodedUser}`);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.redirect(`${config.frontendUrl}/${locale}/sign-up?error=google_oauth_failed`);
+  }
+});
 
 // Register
 router.post('/auth/register', async (req: Request, res: Response): Promise<void> => {
