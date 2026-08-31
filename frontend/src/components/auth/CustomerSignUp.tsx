@@ -28,6 +28,9 @@ export default function CustomerSignUp() {
   const startGoogleSignIn = () => {
     window.location.assign(`${CUSTOMER_API_BASE}/auth/google?locale=${locale}`);
   };
+  const startFacebookSignIn = () => {
+    window.location.assign(`${CUSTOMER_API_BASE}/auth/facebook?locale=${locale}`);
+  };
 
   const isVietnamese = locale === "vi";
   const copy = isVietnamese
@@ -156,7 +159,7 @@ export default function CustomerSignUp() {
           <div className="my-6 flex items-center gap-4"><span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" /><span className="text-[11px] font-semibold tracking-[.28em] text-slate-500">{copy.social}</span><span className="h-px flex-1 bg-slate-300 dark:bg-slate-700" /></div>
           <div className="grid grid-cols-2 gap-4">
             <button type="button" onClick={startGoogleSignIn} className="flex h-13 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><span className="text-xl font-extrabold text-blue-600">G</span>Google</button>
-            <button type="button" onClick={() => setError(copy.facebookUnavailable)} className="flex h-13 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#1877f2] text-lg font-extrabold text-white">f</span>Facebook</button>
+            <button type="button" onClick={startFacebookSignIn} className="flex h-13 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#1877f2] text-lg font-extrabold text-white">f</span>Facebook</button>
           </div>
           <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">{copy.existing} <Link href={`/${locale}/sign-in`} className="font-semibold text-blue-600 underline underline-offset-2">{copy.signIn}</Link></p>
         </div>

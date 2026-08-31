@@ -181,6 +181,14 @@ const getGoogleConfig = () => ({
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 });
 
+const getFacebookConfig = () => ({
+  appId: process.env.FACEBOOK_APP_ID || '',
+  appSecret: process.env.FACEBOOK_APP_SECRET || '',
+  callbackUrl: process.env.FACEBOOK_CALLBACK_URL || 'http://localhost:5000/api/public/auth/facebook/callback',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v23.0',
+});
+
 router.get('/auth/google', (req: Request, res: Response): void => {
   const config = getGoogleConfig();
   if (!config.clientId || !config.clientSecret) {
@@ -263,6 +271,94 @@ router.get('/auth/google/callback', async (req: Request, res: Response): Promise
   } catch (error) {
     console.error('Google OAuth error:', error);
     res.redirect(`${config.frontendUrl}/${locale}/sign-up?error=google_oauth_failed`);
+  }
+});
+
+router.get('/auth/facebook', (req: Request, res: Response): void => {
+  const config = getFacebookConfig();
+  if (!config.appId || !config.appSecret) {
+    res.status(503).json({ success: false, message: 'Facebook sign-in is not configured.' });
+    return;
+  }
+
+  const locale = ['vi', 'en', 'ko'].includes(String(req.query.locale)) ? String(req.query.locale) : 'vi';
+  const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+  const state = jwt.sign({ purpose: 'facebook-oauth', locale }, secret, { expiresIn: '10m' });
+  const params = new URLSearchParams({
+    client_id: config.appId,
+    redirect_uri: config.callbackUrl,
+    response_type: 'code',
+    scope: 'email,public_profile',
+    state,
+  });
+
+  res.redirect(`https://www.facebook.com/${config.graphVersion}/dialog/oauth?${params.toString()}`);
+});
+
+router.get('/auth/facebook/callback', async (req: Request, res: Response): Promise<void> => {
+  const config = getFacebookConfig();
+  let locale = 'vi';
+  try {
+    if (!req.query.code || !req.query.state) throw new Error('Missing Facebook authorization response.');
+    if (!config.appId || !config.appSecret) throw new Error('Facebook sign-in is not configured.');
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    const decoded = jwt.verify(String(req.query.state), secret) as { purpose?: string; locale?: string };
+    if (decoded.purpose !== 'facebook-oauth') throw new Error('Invalid OAuth state.');
+    if (decoded.locale && ['vi', 'en', 'ko'].includes(decoded.locale)) locale = decoded.locale;
+
+    const tokenParams = new URLSearchParams({
+      client_id: config.appId,
+      client_secret: config.appSecret,
+      redirect_uri: config.callbackUrl,
+      code: String(req.query.code),
+    });
+    const tokenResponse = await fetch(`https://graph.facebook.com/${config.graphVersion}/oauth/access_token?${tokenParams.toString()}`);
+    if (!tokenResponse.ok) throw new Error('Facebook token exchange failed.');
+    const facebookTokens = await tokenResponse.json() as { access_token?: string };
+    if (!facebookTokens.access_token) throw new Error('Facebook did not return an access token.');
+
+    const profileParams = new URLSearchParams({
+      fields: 'id,name,email,picture.type(large)',
+      access_token: facebookTokens.access_token,
+    });
+    const profileResponse = await fetch(`https://graph.facebook.com/${config.graphVersion}/me?${profileParams.toString()}`);
+    if (!profileResponse.ok) throw new Error('Unable to read Facebook profile.');
+    const profile = await profileResponse.json() as {
+      email?: string;
+      name?: string;
+      picture?: { data?: { url?: string } };
+    };
+    if (!profile.email) throw new Error('Facebook account must provide an email address.');
+
+    const email = profile.email.toLowerCase().trim();
+    const avatar = profile.picture?.data?.url || null;
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: profile.name || email.split('@')[0],
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+          avatar,
+          role: 'USER',
+          lastLogin: new Date(),
+        },
+      });
+    } else {
+      if (user.isLocked || !user.isActive) throw new Error('This StayEase account is unavailable.');
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date(), loginAttempts: 0, avatar: user.avatar || avatar },
+      });
+    }
+
+    const stayEaseToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
+    const safeUser = { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, bio: user.bio, role: user.role };
+    const encodedUser = Buffer.from(JSON.stringify(safeUser)).toString('base64url');
+    res.redirect(`${config.frontendUrl}/${locale}/auth/facebook/callback#token=${encodeURIComponent(stayEaseToken)}&user=${encodedUser}`);
+  } catch (error) {
+    console.error('Facebook OAuth error:', error);
+    res.redirect(`${config.frontendUrl}/${locale}/sign-up?error=facebook_oauth_failed`);
   }
 });
 
