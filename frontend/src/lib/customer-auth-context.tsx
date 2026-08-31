@@ -18,7 +18,6 @@ interface CustomerAuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { fullName: string; email: string; password: string; phone?: string }) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
@@ -71,23 +70,6 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  const register = async (data: { fullName: string; email: string; password: string; phone?: string }) => {
-    setLoading(true);
-    try {
-      const res = await customerApi.register(data);
-      if (res.success && res.token) {
-        localStorage.setItem("stayease_customer_token", res.token);
-        localStorage.setItem("stayease_customer_user", JSON.stringify(res.user));
-        setToken(res.token);
-        setUser(res.user);
-      } else {
-        throw new Error(res.message || "Failed to register");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const logout = () => {
     localStorage.removeItem("stayease_customer_token");
     localStorage.removeItem("stayease_customer_user");
@@ -115,7 +97,6 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         token,
         loading,
         login,
-        register,
         logout,
         refreshProfile,
         isAuthenticated: !!user && !!token,

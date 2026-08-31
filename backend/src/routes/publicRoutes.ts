@@ -7,6 +7,35 @@ import crypto from 'crypto';
 
 const router = Router();
 
+type OtpChannel = 'email' | 'phone';
+const makeOtp = () => crypto.randomInt(100000, 1000000).toString();
+const hashOtp = (code: string) => crypto.createHash('sha256').update(code).digest('hex');
+const maskDestination = (value: string, channel: OtpChannel) => channel === 'email'
+  ? value.replace(/^(.{2}).*(@.*)$/, '$1***$2')
+  : `${value.slice(0, 3)}***${value.slice(-3)}`;
+
+async function deliverOtp(channel: OtpChannel, destination: string, code: string, purpose: 'registration' | 'payment') {
+  const subject = purpose === 'registration' ? 'Mã xác thực tài khoản StayEase' : 'Mã xác nhận thanh toán StayEase';
+  if (channel === 'email' && process.env.RESEND_API_KEY) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: process.env.OTP_FROM_EMAIL || 'StayEase <onboarding@resend.dev>', to: [destination], subject, html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px"><h2 style="color:#0b2a55">StayEase</h2><p>${subject}</p><div style="font-size:34px;letter-spacing:10px;font-weight:800;color:#147de1">${code}</div><p>Mã có hiệu lực trong 10 phút. Không chia sẻ mã này với bất kỳ ai.</p></div>` }),
+    });
+    if (!response.ok) throw new Error('Unable to send OTP email.');
+    return;
+  }
+  if (channel === 'phone' && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_PHONE) {
+    const body = new URLSearchParams({ To: destination, From: process.env.TWILIO_FROM_PHONE, Body: `${subject}: ${code}. Ma co hieu luc trong 10 phut.` });
+    const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`, { method: 'POST', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+    if (!response.ok) throw new Error('Unable to send OTP SMS.');
+    return;
+  }
+  if (process.env.NODE_ENV === 'production') throw new Error(`${channel === 'email' ? 'Email' : 'SMS'} OTP provider is not configured.`);
+  console.log(`[StayEase development OTP] ${purpose} ${channel} ${destination}: ${code}`);
+}
+
 // ==========================================
 // 1. PUBLIC HOTELS API
 // ==========================================
@@ -186,7 +215,7 @@ const getFacebookConfig = () => ({
   appSecret: process.env.FACEBOOK_APP_SECRET || '',
   callbackUrl: process.env.FACEBOOK_CALLBACK_URL || 'http://localhost:5000/api/public/auth/facebook/callback',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-  graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v23.0',
+  graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v26.0',
 });
 
 router.get('/auth/google', (req: Request, res: Response): void => {
@@ -362,11 +391,15 @@ router.get('/auth/facebook/callback', async (req: Request, res: Response): Promi
   }
 });
 
-// Register
-router.post('/auth/register', async (req: Request, res: Response): Promise<void> => {
-  const { fullName, email, password, phone } = req.body;
+// Request registration OTP
+router.post('/auth/register/request-otp', async (req: Request, res: Response): Promise<void> => {
+  const { fullName, email, password, phone, channel = 'email' } = req.body;
   if (!fullName || !email || !password) {
     res.status(400).json({ success: false, message: 'Please provide full name, email, and password.' });
+    return;
+  }
+  if (!['email', 'phone'].includes(channel) || (channel === 'phone' && !phone)) {
+    res.status(400).json({ success: false, message: 'A phone number is required for SMS verification.' });
     return;
   }
 
@@ -380,36 +413,32 @@ router.post('/auth/register', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        fullName,
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        phone: phone || null,
-        role: 'USER',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fullName)}`,
-      },
-    });
-
     const secret = process.env.JWT_SECRET || 'stayease_default_secret';
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful! Welcome to StayEase.',
-      token,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        role: user.role,
-      },
-    });
+    const otp = makeOtp();
+    const destination = channel === 'email' ? email.toLowerCase().trim() : String(phone).trim();
+    await deliverOtp(channel, destination, otp, 'registration');
+    const challengeToken = jwt.sign({ purpose: 'registration-otp', otpHash: hashOtp(otp), fullName: String(fullName).trim(), email: email.toLowerCase().trim(), password, phone: phone || null, channel }, secret, { expiresIn: '10m' });
+    res.json({ success: true, message: 'Verification code sent.', challengeToken, destination: maskDestination(destination, channel), expiresIn: 600, ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}) });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create user account.' });
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to send verification code.' });
+  }
+});
+
+router.post('/auth/register/verify-otp', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    const decoded = jwt.verify(String(req.body.challengeToken || ''), secret) as any;
+    if (decoded.purpose !== 'registration-otp' || hashOtp(String(req.body.code || '')) !== decoded.otpHash) {
+      res.status(400).json({ success: false, message: 'The verification code is invalid or expired.' }); return;
+    }
+    if (await prisma.user.findUnique({ where: { email: decoded.email } })) {
+      res.status(400).json({ success: false, message: 'Email address is already registered.' }); return;
+    }
+    const user = await prisma.user.create({ data: { fullName: decoded.fullName, email: decoded.email, password: await bcrypt.hash(decoded.password, 10), phone: decoded.phone, role: 'USER', avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(decoded.fullName)}` } });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
+    res.status(201).json({ success: true, message: 'Account verified successfully.', token, user: { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, role: user.role } });
+  } catch {
+    res.status(400).json({ success: false, message: 'The verification code is invalid or expired.' });
   }
 });
 
@@ -651,7 +680,24 @@ router.post('/bookings', customerAuth, async (req: any, res: Response): Promise<
   }
 });
 
-// Sandbox payment callback. Production gateways must verify their signed server-to-server callback here.
+router.post('/bookings/:id/payments/request-otp', customerAuth, async (req: any, res: Response): Promise<void> => {
+  try {
+    const channel: OtpChannel = req.body.channel === 'phone' ? 'phone' : 'email';
+    const destination = channel === 'phone' ? req.user.phone : req.user.email;
+    if (!destination) { res.status(400).json({ success: false, message: `No ${channel} is available on your account.` }); return; }
+    const booking = await prisma.booking.findFirst({ where: { id: String(req.params.id), userId: req.user.id, paymentStatus: 'pending' } });
+    if (!booking) { res.status(404).json({ success: false, message: 'Pending reservation not found.' }); return; }
+    const otp = makeOtp();
+    await deliverOtp(channel, destination, otp, 'payment');
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    const challengeToken = jwt.sign({ purpose: 'payment-otp', otpHash: hashOtp(otp), bookingId: booking.id, userId: req.user.id, paymentMethod: req.body.paymentMethod, paymentReference: req.body.paymentReference }, secret, { expiresIn: '10m' });
+    res.json({ success: true, challengeToken, destination: maskDestination(destination, channel), expiresIn: 600, ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Unable to send payment OTP.' });
+  }
+});
+
+// Sandbox payment callback. Production gateways must also verify their signed server-to-server callback here.
 router.post('/bookings/:id/payments/confirm', customerAuth, async (req: any, res: Response): Promise<void> => {
   const paymentReference = String(req.body.paymentReference || '').trim();
   const paymentMethod = String(req.body.paymentMethod || '').trim();
@@ -660,6 +706,12 @@ router.post('/bookings/:id/payments/confirm', customerAuth, async (req: any, res
     return;
   }
   try {
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    let otpChallenge: any;
+    try { otpChallenge = jwt.verify(String(req.body.challengeToken || ''), secret); } catch { otpChallenge = null; }
+    if (!otpChallenge || otpChallenge.purpose !== 'payment-otp' || otpChallenge.bookingId !== String(req.params.id) || otpChallenge.userId !== req.user.id || hashOtp(String(req.body.code || '')) !== otpChallenge.otpHash) {
+      res.status(400).json({ success: false, message: 'The payment verification code is invalid or expired.' }); return;
+    }
     const booking = await prisma.booking.findFirst({ where: { id: String(req.params.id), userId: req.user.id } });
     if (!booking) {
       res.status(404).json({ success: false, message: 'Reservation not found.' });

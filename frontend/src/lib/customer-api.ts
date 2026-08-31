@@ -56,11 +56,18 @@ export const customerApi = {
     return handleResponse<{ success: boolean; token: string; user: any; message: string }>(res);
   },
 
-  async register(data: { fullName: string; email: string; password: string; phone?: string }) {
-    const res = await fetch(`${CUSTOMER_API_BASE}/auth/register`, {
+  async requestRegistrationOtp(data: { fullName: string; email: string; password: string; phone?: string; channel: "email" | "phone" }) {
+    const res = await fetch(`${CUSTOMER_API_BASE}/auth/register/request-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
+    });
+    return handleResponse<{ success: boolean; challengeToken: string; destination: string; expiresIn: number; devOtp?: string; message: string }>(res);
+  },
+
+  async verifyRegistrationOtp(data: { challengeToken: string; code: string }) {
+    const res = await fetch(`${CUSTOMER_API_BASE}/auth/register/verify-otp`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
     });
     return handleResponse<{ success: boolean; token: string; user: any; message: string }>(res);
   },
@@ -91,7 +98,12 @@ export const customerApi = {
     return handleResponse<{ success: boolean; message: string; data: any }>(res);
   },
 
-  async confirmPayment(bookingId: string, data: { paymentMethod: string; paymentReference: string }) {
+  async requestPaymentOtp(bookingId: string, data: { paymentMethod: string; paymentReference: string; channel: "email" | "phone" }) {
+    const res = await fetch(`${CUSTOMER_API_BASE}/bookings/${bookingId}/payments/request-otp`, { method: "POST", headers: getCustomerAuthHeaders(), body: JSON.stringify(data) });
+    return handleResponse<{ success: boolean; challengeToken: string; destination: string; expiresIn: number; devOtp?: string }>(res);
+  },
+
+  async confirmPayment(bookingId: string, data: { paymentMethod: string; paymentReference: string; challengeToken: string; code: string }) {
     const res = await fetch(`${CUSTOMER_API_BASE}/bookings/${bookingId}/payments/confirm`, {
       method: "POST",
       headers: getCustomerAuthHeaders(),

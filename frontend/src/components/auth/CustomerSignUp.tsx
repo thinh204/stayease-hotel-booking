@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
-import { AlertCircle, Check, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, User } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { AlertCircle, Check, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, Phone, ShieldCheck, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCustomerAuth } from "@/lib/customer-auth-context";
-import { CUSTOMER_API_BASE } from "@/lib/customer-api";
+import { CUSTOMER_API_BASE, customerApi } from "@/lib/customer-api";
+import OtpCodeInput from "@/components/auth/OtpCodeInput";
 
 const authImage =
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&auto=format&fit=crop&q=90";
@@ -16,11 +16,18 @@ export default function CustomerSignUp() {
   const router = useRouter();
   const pathname = usePathname();
   const locale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "vi";
-  const { register, loading } = useCustomerAuth();
+  const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otpChannel, setOtpChannel] = useState<"email" | "phone">("email");
+  const [otpChallenge, setOtpChallenge] = useState("");
+  const [otpDestination, setOtpDestination] = useState("");
+  const [otp, setOtp] = useState("");
+  const [devOtp, setDevOtp] = useState("");
+  const [resendIn, setResendIn] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(true);
@@ -30,6 +37,17 @@ export default function CustomerSignUp() {
   };
   const startFacebookSignIn = () => {
     window.location.assign(`${CUSTOMER_API_BASE}/auth/facebook?locale=${locale}`);
+  };
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setInterval(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendIn]);
+
+  const requestOtp = async () => {
+    const response = await customerApi.requestRegistrationOtp({ fullName: fullName.trim(), email: email.trim(), password, phone: phone.trim() || undefined, channel: otpChannel });
+    setOtpChallenge(response.challengeToken); setOtpDestination(response.destination); setDevOtp(response.devOtp || ""); setOtp(""); setResendIn(45);
   };
 
   const isVietnamese = locale === "vi";
@@ -87,12 +105,44 @@ export default function CustomerSignUp() {
     }
 
     try {
-      await register({ fullName: fullName.trim(), email: email.trim(), password });
-      router.push(`/${locale}/account`);
+      if (otpChannel === "phone" && !phone.trim()) throw new Error("Vui lòng nhập số điện thoại để nhận OTP.");
+      setLoading(true);
+      await requestOtp();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to create account. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const verifyOtp = async () => {
+    if (otp.length !== 6) return;
+    setLoading(true); setError(null);
+    try {
+      const response = await customerApi.verifyRegistrationOtp({ challengeToken: otpChallenge, code: otp });
+      localStorage.setItem("stayease_customer_token", response.token);
+      localStorage.setItem("stayease_customer_user", JSON.stringify(response.user));
+      window.location.replace(`/${locale}/account`);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "OTP verification failed."); }
+    finally { setLoading(false); }
+  };
+
+  if (otpChallenge) return <section className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#eef8ff,white_55%,#edf6ff)] px-4 py-10 text-slate-900">
+    <div className="w-full max-w-xl text-center">
+      <Link href={`/${locale}`} className="inline-flex"><Image src="/icons/logo.svg" alt="StayEase" width={250} height={60} priority /></Link>
+      <div className="mt-10 rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,.14)] sm:p-12">
+        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-blue-50 text-blue-600"><ShieldCheck className="h-10 w-10" /></div>
+        <h1 className="mt-5 text-3xl font-extrabold text-[#0b2a55] sm:text-4xl">{otpChannel === "email" ? "Xác thực email" : "Xác thực số điện thoại"}</h1>
+        <p className="mt-2 text-slate-500">Chúng tôi đã gửi mã gồm 6 chữ số đến <strong>{otpDestination}</strong></p>
+        {devOtp && <p className="mt-3 rounded-lg bg-amber-50 py-2 text-sm font-bold text-amber-700">Mã thử nghiệm local: {devOtp}</p>}
+        {error && <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
+        <div className="mt-7"><OtpCodeInput value={otp} onChange={setOtp} disabled={loading} /></div>
+        <button type="button" onClick={verifyOtp} disabled={loading || otp.length !== 6} className="mt-7 h-14 w-full rounded-xl bg-gradient-to-r from-[#1688f5] to-[#0875df] text-lg font-bold text-white shadow-lg shadow-blue-500/20 disabled:opacity-50">{loading ? "Đang xác thực..." : "Xác thực"}</button>
+      </div>
+      <p className="mt-7 text-sm text-slate-500">Chưa nhận được mã? <button type="button" disabled={resendIn > 0 || loading} onClick={async () => { setLoading(true); try { await requestOtp(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Không thể gửi lại mã."); } finally { setLoading(false); } }} className="font-bold text-blue-600 disabled:text-slate-400">{resendIn > 0 ? `Gửi lại sau 00:${String(resendIn).padStart(2, "0")}` : "Gửi lại"}</button></p>
+      <button type="button" onClick={() => { setOtpChallenge(""); setOtp(""); setError(null); }} className="mt-6 font-semibold text-blue-600 underline">Thay đổi thông tin</button>
+    </div>
+  </section>;
 
   return (
     <section className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[#eef7ff] text-slate-900 dark:bg-slate-950 dark:text-white">
@@ -144,6 +194,16 @@ export default function CustomerSignUp() {
               <input type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" required minLength={6} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={copy.confirm} className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-12 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:focus:ring-blue-950" />
               <button type="button" aria-label={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"} onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600">{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
             </label>
+
+            <label className="relative block">
+              <span className="sr-only">Số điện thoại</span><Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              <input type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Số điện thoại (để nhận OTP SMS)" className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-4 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950" />
+            </label>
+
+            <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+              <button type="button" onClick={() => setOtpChannel("email")} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-bold transition ${otpChannel === "email" ? "bg-white text-blue-700 shadow-sm dark:bg-slate-950" : "text-slate-500"}`}><Mail className="h-4 w-4" />OTP email</button>
+              <button type="button" onClick={() => setOtpChannel("phone")} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-bold transition ${otpChannel === "phone" ? "bg-white text-blue-700 shadow-sm dark:bg-slate-950" : "text-slate-500"}`}><Phone className="h-4 w-4" />OTP điện thoại</button>
+            </div>
 
             <label className="flex cursor-pointer items-start gap-2.5 py-1 text-sm text-slate-600 dark:text-slate-300">
               <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="sr-only" />

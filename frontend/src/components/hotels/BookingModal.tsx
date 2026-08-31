@@ -16,9 +16,11 @@ import {
   Landmark,
   Smartphone,
   WalletCards,
+  Mail,
 } from "lucide-react";
 import { customerApi } from "@/lib/customer-api";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
+import OtpCodeInput from "@/components/auth/OtpCodeInput";
 
 interface BookingModalProps {
   hotel: any;
@@ -63,6 +65,11 @@ export default function BookingModal({
   const [bookingSuccess, setBookingSuccess] = useState<any | null>(null);
   const [pendingBooking, setPendingBooking] = useState<any | null>(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [paymentOtpChannel, setPaymentOtpChannel] = useState<"email" | "phone">("email");
+  const [paymentOtpChallenge, setPaymentOtpChallenge] = useState("");
+  const [paymentOtpDestination, setPaymentOtpDestination] = useState("");
+  const [paymentOtp, setPaymentOtp] = useState("");
+  const [paymentDevOtp, setPaymentDevOtp] = useState("");
   const [paymentReference] = useState(() => `PAY-${Date.now().toString().slice(-10)}`);
   const today = new Date().toISOString().split("T")[0];
 
@@ -139,7 +146,13 @@ export default function BookingModal({
     setConfirmingPayment(true);
     setError(null);
     try {
-      const response = await customerApi.confirmPayment(pendingBooking.id, { paymentMethod, paymentReference });
+      if (!paymentOtpChallenge) {
+        const requested = await customerApi.requestPaymentOtp(pendingBooking.id, { paymentMethod, paymentReference, channel: paymentOtpChannel });
+        setPaymentOtpChallenge(requested.challengeToken); setPaymentOtpDestination(requested.destination); setPaymentDevOtp(requested.devOtp || ""); setPaymentOtp("");
+        return;
+      }
+      if (paymentOtp.length !== 6) throw new Error("Vui lòng nhập đủ mã OTP 6 số.");
+      const response = await customerApi.confirmPayment(pendingBooking.id, { paymentMethod, paymentReference, challengeToken: paymentOtpChallenge, code: paymentOtp });
       if (response.success) {
         setBookingSuccess(response.data);
         setPendingBooking(null);
@@ -202,13 +215,21 @@ export default function BookingModal({
               <div className="mt-2 flex justify-between"><span>Mã giao dịch</span><strong className="font-mono">{paymentReference}</strong></div>
               <div className="mt-2 flex justify-between"><span>Trạng thái</span><strong className="text-amber-600">Chưa thanh toán</strong></div>
             </div>
+            <div className="mx-auto w-full max-w-md">
+              <p className="mb-2 text-xs font-bold text-slate-600 dark:text-slate-300">Nhận OTP xác nhận thanh toán qua</p>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+                <button type="button" onClick={() => { setPaymentOtpChannel("email"); setPaymentOtpChallenge(""); }} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${paymentOtpChannel === "email" ? "bg-white text-blue-700 shadow dark:bg-slate-950" : "text-slate-500"}`}><Mail className="h-4 w-4" />Email</button>
+                <button type="button" onClick={() => { setPaymentOtpChannel("phone"); setPaymentOtpChallenge(""); }} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold ${paymentOtpChannel === "phone" ? "bg-white text-blue-700 shadow dark:bg-slate-950" : "text-slate-500"}`}><Smartphone className="h-4 w-4" />Điện thoại</button>
+              </div>
+              {paymentOtpChallenge && <div className="mt-5 rounded-2xl border border-slate-200 p-4 dark:border-slate-700"><p className="mb-3 text-xs text-slate-500">Mã đã gửi đến <strong>{paymentOtpDestination}</strong></p>{paymentDevOtp && <p className="mb-3 rounded-lg bg-amber-50 py-2 text-xs font-bold text-amber-700">Mã thử nghiệm local: {paymentDevOtp}</p>}<OtpCodeInput value={paymentOtp} onChange={setPaymentOtp} disabled={confirmingPayment} /></div>}
+            </div>
             {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
             <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <button type="button" onClick={() => setPendingBooking(null)} className="rounded-xl border border-slate-200 px-5 py-3 text-xs font-bold dark:border-slate-700">
                 Quay lại
               </button>
               <button type="button" onClick={handleConfirmPayment} disabled={confirmingPayment} className="rounded-xl bg-emerald-600 px-6 py-3 text-xs font-bold text-white disabled:opacity-50">
-                {confirmingPayment ? "Đang xác minh callback..." : "Mô phỏng đã chuyển tiền thành công"}
+                {confirmingPayment ? "Đang xử lý..." : paymentOtpChallenge ? "Xác thực OTP & hoàn tất" : "Gửi OTP xác nhận thanh toán"}
               </button>
             </div>
             <p className="text-[11px] text-slate-400">Trong production, nút này được thay bằng callback có chữ ký từ cổng thanh toán.</p>
