@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../prisma.js';
 import { createAuditLog } from '../middlewares/audit.js';
 import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 const router = Router();
 
@@ -15,14 +16,38 @@ const issueTrustedDevice = (userId: string, req: Request, secret: string) => jwt
 const maskDestination = (value: string, channel: OtpChannel) => channel === 'email'
   ? value.replace(/^(.{2}).*(@.*)$/, '$1***$2')
   : `${value.slice(0, 3)}***${value.slice(-3)}`;
+const normalizePhone = (value: string) => {
+  const compact = value.replace(/[\s().-]/g, '');
+  if (/^0\d{9}$/.test(compact)) return `+84${compact.slice(1)}`;
+  if (/^84\d{9}$/.test(compact)) return `+${compact}`;
+  if (/^\+[1-9]\d{7,14}$/.test(compact)) return compact;
+  throw new Error('Số điện thoại không hợp lệ. Hãy nhập dạng 09xxxxxxxx hoặc +84xxxxxxxxx.');
+};
 
 async function deliverOtp(channel: OtpChannel, destination: string, code: string, purpose: 'registration' | 'payment') {
   const subject = purpose === 'registration' ? 'Mã xác thực tài khoản StayEase' : 'Mã xác nhận thanh toán StayEase';
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px"><h2 style="color:#0b2a55">StayEase</h2><p>${subject}</p><div style="font-size:34px;letter-spacing:10px;font-weight:800;color:#147de1">${code}</div><p>Mã có hiệu lực trong 10 phút. Không chia sẻ mã này với bất kỳ ai.</p></div>`;
+  if (channel === 'email' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    const port = Number(process.env.SMTP_PORT || 587);
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port,
+      secure: process.env.SMTP_SECURE === 'true' || port === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+    });
+    await transporter.sendMail({
+      from: process.env.OTP_FROM_EMAIL || `StayEase <${process.env.SMTP_USER}>`,
+      to: destination,
+      subject,
+      html,
+    });
+    return;
+  }
   if (channel === 'email' && process.env.RESEND_API_KEY) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.OTP_FROM_EMAIL || 'StayEase <onboarding@resend.dev>', to: [destination], subject, html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px"><h2 style="color:#0b2a55">StayEase</h2><p>${subject}</p><div style="font-size:34px;letter-spacing:10px;font-weight:800;color:#147de1">${code}</div><p>Mã có hiệu lực trong 10 phút. Không chia sẻ mã này với bất kỳ ai.</p></div>` }),
+      body: JSON.stringify({ from: process.env.OTP_FROM_EMAIL || 'StayEase <onboarding@resend.dev>', to: [destination], subject, html }),
     });
     if (!response.ok) throw new Error('Unable to send OTP email.');
     return;
@@ -417,9 +442,10 @@ router.post('/auth/register/request-otp', async (req: Request, res: Response): P
 
     const secret = process.env.JWT_SECRET || 'stayease_default_secret';
     const otp = makeOtp();
-    const destination = channel === 'email' ? email.toLowerCase().trim() : String(phone).trim();
+    const normalizedPhone = phone ? normalizePhone(String(phone)) : null;
+    const destination = channel === 'email' ? email.toLowerCase().trim() : normalizedPhone!;
     await deliverOtp(channel, destination, otp, 'registration');
-    const challengeToken = jwt.sign({ purpose: 'registration-otp', otpHash: hashOtp(otp), fullName: String(fullName).trim(), email: email.toLowerCase().trim(), password, phone: phone || null, channel }, secret, { expiresIn: '10m' });
+    const challengeToken = jwt.sign({ purpose: 'registration-otp', otpHash: hashOtp(otp), fullName: String(fullName).trim(), email: email.toLowerCase().trim(), password, phone: normalizedPhone, channel }, secret, { expiresIn: '10m' });
     res.json({ success: true, message: 'Verification code sent.', challengeToken, destination: maskDestination(destination, channel), expiresIn: 600, ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}) });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to send verification code.' });
@@ -485,7 +511,7 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
     const suspicious = !trusted || user.loginAttempts >= 2;
     if (suspicious && user.phone) {
       const otp = makeOtp();
-      await deliverOtp('phone', user.phone, otp, 'registration');
+      await deliverOtp('phone', normalizePhone(user.phone), otp, 'registration');
       const challengeToken = jwt.sign({ purpose: 'login-phone-otp', userId: user.id, otpHash: hashOtp(otp) }, secret, { expiresIn: '10m' });
       res.json({ success: true, requiresSecondFactor: true, challengeToken, destination: maskDestination(user.phone, 'phone'), ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}) });
       return;
@@ -722,7 +748,9 @@ router.post('/bookings', customerAuth, async (req: any, res: Response): Promise<
 router.post('/bookings/:id/payments/request-otp', customerAuth, async (req: any, res: Response): Promise<void> => {
   try {
     const channel: OtpChannel = req.body.channel === 'phone' ? 'phone' : 'email';
-    const destination = channel === 'phone' ? req.user.phone : req.user.email;
+    const destination = channel === 'phone'
+      ? (req.user.phone ? normalizePhone(req.user.phone) : null)
+      : req.user.email;
     if (!destination) { res.status(400).json({ success: false, message: `No ${channel} is available on your account.` }); return; }
     const booking = await prisma.booking.findFirst({ where: { id: String(req.params.id), userId: req.user.id, paymentStatus: 'pending' } });
     if (!booking) { res.status(404).json({ success: false, message: 'Pending reservation not found.' }); return; }
