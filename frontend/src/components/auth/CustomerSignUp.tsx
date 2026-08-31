@@ -22,7 +22,7 @@ export default function CustomerSignUp() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [otpChannel, setOtpChannel] = useState<"email" | "phone">("email");
+  const otpChannel: "email" = "email";
   const [otpChallenge, setOtpChallenge] = useState("");
   const [otpDestination, setOtpDestination] = useState("");
   const [otp, setOtp] = useState("");
@@ -105,7 +105,7 @@ export default function CustomerSignUp() {
     }
 
     try {
-      if (otpChannel === "phone" && !phone.trim()) throw new Error("Vui lòng nhập số điện thoại để nhận OTP.");
+      if (!phone.trim()) throw new Error("Vui lòng nhập số điện thoại để bảo vệ tài khoản khi có đăng nhập bất thường.");
       setLoading(true);
       await requestOtp();
     } catch (reason) {
@@ -122,6 +122,7 @@ export default function CustomerSignUp() {
       const response = await customerApi.verifyRegistrationOtp({ challengeToken: otpChallenge, code: otp });
       localStorage.setItem("stayease_customer_token", response.token);
       localStorage.setItem("stayease_customer_user", JSON.stringify(response.user));
+      localStorage.setItem("stayease_trusted_device", response.trustedDeviceToken);
       window.location.replace(`/${locale}/account`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "OTP verification failed."); }
     finally { setLoading(false); }
@@ -200,10 +201,7 @@ export default function CustomerSignUp() {
               <input type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Số điện thoại (để nhận OTP SMS)" className="h-13 w-full rounded-lg border border-slate-300 bg-white/80 pl-13 pr-4 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950" />
             </label>
 
-            <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-              <button type="button" onClick={() => setOtpChannel("email")} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-bold transition ${otpChannel === "email" ? "bg-white text-blue-700 shadow-sm dark:bg-slate-950" : "text-slate-500"}`}><Mail className="h-4 w-4" />OTP email</button>
-              <button type="button" onClick={() => setOtpChannel("phone")} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-bold transition ${otpChannel === "phone" ? "bg-white text-blue-700 shadow-sm dark:bg-slate-950" : "text-slate-500"}`}><Phone className="h-4 w-4" />OTP điện thoại</button>
-            </div>
+            <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"><Mail className="h-4 w-4" />Email sẽ được xác thực trước. Số điện thoại chỉ dùng khi phát hiện đăng nhập bất thường.</div>
 
             <label className="flex cursor-pointer items-start gap-2.5 py-1 text-sm text-slate-600 dark:text-slate-300">
               <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="sr-only" />

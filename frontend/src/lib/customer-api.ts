@@ -47,13 +47,18 @@ export const customerApi = {
   },
 
   // Auth
-  async login(credentials: { email: string; password: string }) {
+  async login(credentials: { email: string; password: string; trustedDeviceToken?: string | null }) {
     const res = await fetch(`${CUSTOMER_API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
     });
-    return handleResponse<{ success: boolean; token: string; user: any; message: string }>(res);
+    return handleResponse<{ success: boolean; token?: string; trustedDeviceToken?: string; user?: any; message?: string; requiresSecondFactor?: boolean; challengeToken?: string; destination?: string; devOtp?: string }>(res);
+  },
+
+  async verifyLoginOtp(data: { challengeToken: string; code: string }) {
+    const res = await fetch(`${CUSTOMER_API_BASE}/auth/login/verify-otp`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    return handleResponse<{ success: boolean; token: string; trustedDeviceToken: string; user: any }>(res);
   },
 
   async requestRegistrationOtp(data: { fullName: string; email: string; password: string; phone?: string; channel: "email" | "phone" }) {
@@ -69,7 +74,7 @@ export const customerApi = {
     const res = await fetch(`${CUSTOMER_API_BASE}/auth/register/verify-otp`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
     });
-    return handleResponse<{ success: boolean; token: string; user: any; message: string }>(res);
+    return handleResponse<{ success: boolean; token: string; trustedDeviceToken: string; user: any; message: string }>(res);
   },
 
   async getMe() {

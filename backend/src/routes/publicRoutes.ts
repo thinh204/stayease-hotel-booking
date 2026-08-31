@@ -10,6 +10,8 @@ const router = Router();
 type OtpChannel = 'email' | 'phone';
 const makeOtp = () => crypto.randomInt(100000, 1000000).toString();
 const hashOtp = (code: string) => crypto.createHash('sha256').update(code).digest('hex');
+const deviceFingerprint = (req: Request) => crypto.createHash('sha256').update(String(req.headers['user-agent'] || 'unknown-device')).digest('hex');
+const issueTrustedDevice = (userId: string, req: Request, secret: string) => jwt.sign({ purpose: 'trusted-device', userId, fingerprint: deviceFingerprint(req) }, secret, { expiresIn: '90d' });
 const maskDestination = (value: string, channel: OtpChannel) => channel === 'email'
   ? value.replace(/^(.{2}).*(@.*)$/, '$1***$2')
   : `${value.slice(0, 3)}***${value.slice(-3)}`;
@@ -436,7 +438,8 @@ router.post('/auth/register/verify-otp', async (req: Request, res: Response): Pr
     }
     const user = await prisma.user.create({ data: { fullName: decoded.fullName, email: decoded.email, password: await bcrypt.hash(decoded.password, 10), phone: decoded.phone, role: 'USER', avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(decoded.fullName)}` } });
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
-    res.status(201).json({ success: true, message: 'Account verified successfully.', token, user: { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, role: user.role } });
+    const trustedDeviceToken = issueTrustedDevice(user.id, req, secret);
+    res.status(201).json({ success: true, message: 'Account verified successfully.', token, trustedDeviceToken, user: { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, role: user.role } });
   } catch {
     res.status(400).json({ success: false, message: 'The verification code is invalid or expired.' });
   }
@@ -444,7 +447,7 @@ router.post('/auth/register/verify-otp', async (req: Request, res: Response): Pr
 
 // Login
 router.post('/auth/login', async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const { email, password, trustedDeviceToken } = req.body;
   if (!email || !password) {
     res.status(400).json({ success: false, message: 'Please provide email and password.' });
     return;
@@ -467,7 +470,24 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      await prisma.user.update({ where: { id: user.id }, data: { loginAttempts: { increment: 1 } } });
       res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      return;
+    }
+
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    let trusted = false;
+    try {
+      const decoded = jwt.verify(String(trustedDeviceToken || ''), secret) as any;
+      trusted = decoded.purpose === 'trusted-device' && decoded.userId === user.id && decoded.fingerprint === deviceFingerprint(req);
+    } catch {}
+
+    const suspicious = !trusted || user.loginAttempts >= 2;
+    if (suspicious && user.phone) {
+      const otp = makeOtp();
+      await deliverOtp('phone', user.phone, otp, 'registration');
+      const challengeToken = jwt.sign({ purpose: 'login-phone-otp', userId: user.id, otpHash: hashOtp(otp) }, secret, { expiresIn: '10m' });
+      res.json({ success: true, requiresSecondFactor: true, challengeToken, destination: maskDestination(user.phone, 'phone'), ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}) });
       return;
     }
 
@@ -476,13 +496,14 @@ router.post('/auth/login', async (req: Request, res: Response): Promise<void> =>
       data: { lastLogin: new Date(), loginAttempts: 0 },
     });
 
-    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
+    const nextTrustedDeviceToken = issueTrustedDevice(user.id, req, secret);
 
     res.json({
       success: true,
       message: 'Login successful',
       token,
+      trustedDeviceToken: nextTrustedDeviceToken,
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -557,6 +578,24 @@ router.put('/auth/profile', customerAuth, async (req: any, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to update profile.' });
+  }
+});
+
+router.post('/auth/login/verify-otp', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const secret = process.env.JWT_SECRET || 'stayease_default_secret';
+    const decoded = jwt.verify(String(req.body.challengeToken || ''), secret) as any;
+    if (decoded.purpose !== 'login-phone-otp' || hashOtp(String(req.body.code || '')) !== decoded.otpHash) {
+      res.status(400).json({ success: false, message: 'The phone verification code is invalid or expired.' }); return;
+    }
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    if (!user || user.isLocked || !user.isActive) { res.status(401).json({ success: false, message: 'Account is unavailable.' }); return; }
+    await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date(), loginAttempts: 0 } });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
+    const trustedDeviceToken = issueTrustedDevice(user.id, req, secret);
+    res.json({ success: true, token, trustedDeviceToken, user: { id: user.id, fullName: user.fullName, email: user.email, phone: user.phone, avatar: user.avatar, bio: user.bio, role: user.role } });
+  } catch {
+    res.status(400).json({ success: false, message: 'The phone verification code is invalid or expired.' });
   }
 });
 

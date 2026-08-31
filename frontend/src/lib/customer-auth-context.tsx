@@ -17,7 +17,7 @@ interface CustomerAuthContextType {
   user: CustomerUser | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
   isAuthenticated: boolean;
@@ -56,12 +56,15 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const res = await customerApi.login({ email, password });
+      const res = await customerApi.login({ email, password, trustedDeviceToken: localStorage.getItem("stayease_trusted_device") });
+      if (res.requiresSecondFactor) return res;
       if (res.success && res.token) {
         localStorage.setItem("stayease_customer_token", res.token);
         localStorage.setItem("stayease_customer_user", JSON.stringify(res.user));
+        if (res.trustedDeviceToken) localStorage.setItem("stayease_trusted_device", res.trustedDeviceToken);
         setToken(res.token);
         setUser(res.user);
+        return res;
       } else {
         throw new Error(res.message || "Failed to sign in");
       }
