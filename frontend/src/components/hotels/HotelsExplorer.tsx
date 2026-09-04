@@ -66,6 +66,11 @@ export default function HotelsExplorer() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const locale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "vi";
+  const ui = ({
+    en: {filters:"Filters",clear:"Clear all",price:"Price range",rating:"Star rating",above:"& above",amenities:"Amenities",property:"Property type",destination:"Destination",dates:"Check-in – Check-out",guests:"Guests",adult:"Adult",search:"Search",list:"List",map:"Map",properties:"properties",found:"found in",sort:"Sort by",recommended:"Recommended",low:"Price: Low to High",high:"Price: High to Low",newest:"Newest",empty:"No matching hotels found",popular:"Popular",reviews:"reviews",cancel:"Free cancellation",from:"From",night:"/ night incl. taxes",book:"Book now",open:"Open",previous:"Previous",next:"Next",forYou:"Recommended for you",forYouDesc:"Handpicked hotels based on your preferences",allRecommendations:"View all recommendations",show:"Show",excellent:"Excellent"},
+    vi: {filters:"Bộ lọc",clear:"Xóa tất cả",price:"Khoảng giá",rating:"Hạng sao",above:"trở lên",amenities:"Tiện nghi",property:"Loại hình lưu trú",destination:"Điểm đến",dates:"Nhận phòng – Trả phòng",guests:"Khách",adult:"Người lớn",search:"Tìm kiếm",list:"Danh sách",map:"Bản đồ",properties:"khách sạn",found:"tại",sort:"Sắp xếp",recommended:"Đề xuất",low:"Giá: thấp đến cao",high:"Giá: cao đến thấp",newest:"Mới nhất",empty:"Không tìm thấy khách sạn phù hợp",popular:"Phổ biến",reviews:"đánh giá",cancel:"Hủy miễn phí",from:"Từ",night:"/ đêm, gồm thuế",book:"Đặt ngay",open:"Mở",previous:"Trước",next:"Sau",forYou:"Đề xuất cho bạn",forYouDesc:"Khách sạn tuyển chọn theo sở thích của bạn",allRecommendations:"Xem tất cả đề xuất",show:"Hiển thị",excellent:"Xuất sắc"},
+    ko: {filters:"필터",clear:"모두 지우기",price:"가격대",rating:"호텔 등급",above:"이상",amenities:"편의시설",property:"숙소 유형",destination:"여행지",dates:"체크인 – 체크아웃",guests:"투숙객",adult:"성인",search:"검색",list:"목록",map:"지도",properties:"개 숙소",found:"검색 지역",sort:"정렬",recommended:"추천순",low:"낮은 가격순",high:"높은 가격순",newest:"최신순",empty:"조건에 맞는 호텔이 없습니다",popular:"인기",reviews:"후기",cancel:"무료 취소",from:"최저",night:"/ 세금 포함 1박",book:"예약하기",open:"열기",previous:"이전",next:"다음",forYou:"회원님을 위한 추천",forYouDesc:"선호도에 따라 엄선된 호텔",allRecommendations:"모든 추천 보기",show:"보기",excellent:"최고"}
+  } as const)[locale as "en"|"vi"|"ko"];
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -154,30 +159,30 @@ export default function HotelsExplorer() {
     <>
       <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
         <span className="flex items-center gap-2 text-base font-extrabold text-slate-900 dark:text-white">
-          <Filter className="h-4 w-4 text-blue-600" /> Filters
+          <Filter className="h-4 w-4 text-blue-600" /> {ui.filters}
         </span>
-        <button type="button" onClick={resetFilters} className="text-xs font-bold text-blue-600 hover:underline">Clear all</button>
+        <button type="button" onClick={resetFilters} className="text-xs font-bold text-blue-600 hover:underline">{ui.clear}</button>
       </div>
 
       <div className="space-y-3">
-        <p className="text-sm font-bold text-slate-900 dark:text-white">Price Range</p>
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{ui.price}</p>
         <input type="range" min={200} max={2000} step={50} value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} className="w-full accent-blue-600" />
         <div className="flex justify-between text-[11px] text-slate-500"><span>500,000 VND</span><span>{vnd(maxPrice)}</span></div>
       </div>
 
       <div className="space-y-2.5">
-        <p className="text-sm font-bold text-slate-900 dark:text-white">Star Rating</p>
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{ui.rating}</p>
         {[4, 3, 2, 1].map((rate) => (
           <button key={rate} type="button" onClick={() => setMinRating(minRating === rate ? 0 : rate)} className="flex w-full items-center gap-2 text-left text-xs text-slate-600 dark:text-slate-300">
             <span className={`grid h-4 w-4 place-items-center rounded border ${minRating === rate ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}>{minRating === rate ? "✓" : ""}</span>
-            <span>{rate} & above</span>
+            <span>{rate} {ui.above}</span>
             <span className="ml-auto flex">{Array.from({ length: 5 }).map((_, index) => <Star key={index} className={`h-3.5 w-3.5 ${index < rate ? "fill-blue-600 text-blue-600" : "text-slate-300"}`} />)}</span>
           </button>
         ))}
       </div>
 
       <div className="space-y-2.5">
-        <p className="text-sm font-bold text-slate-900 dark:text-white">Amenities</p>
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{ui.amenities}</p>
         {amenityFilters.map(({ label, icon: Icon }, index) => (
           <label key={label} className="flex cursor-pointer items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
             <input type="checkbox" defaultChecked={index === 0} className="h-4 w-4 rounded accent-blue-600" />
@@ -187,13 +192,13 @@ export default function HotelsExplorer() {
       </div>
 
       <div className="space-y-2.5">
-        <p className="text-sm font-bold text-slate-900 dark:text-white">Property Type</p>
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{ui.property}</p>
         {["Hotel", "Resort", "Apartment", "Villa", "Guest House"].map((type, index) => (
           <label key={type} className="flex cursor-pointer items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><input type="checkbox" defaultChecked={index === 0} className="h-4 w-4 rounded accent-blue-600" />{type}</label>
         ))}
       </div>
     </>
-  ), [maxPrice, minRating]);
+  ), [maxPrice, minRating, ui]);
 
   return (
     <main className="min-h-screen bg-[#f6f8fc] py-5 dark:bg-slate-950">
@@ -202,14 +207,14 @@ export default function HotelsExplorer() {
           <div className="grid gap-2 md:grid-cols-[1.05fr_1.2fr_.9fr_auto] md:items-center">
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-r md:border-slate-200 dark:md:border-slate-700">
               <MapPin className="h-6 w-6 shrink-0 text-blue-600" />
-              <label className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-slate-500">Destination</span><select value={selectedCity} onChange={(event) => setSelectedCity(event.target.value)} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none dark:text-white"><option value="ALL">Vietnam</option>{cities.slice(1).map((city) => <option key={city}>{city}</option>)}</select></label>
+              <label className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-slate-500">{ui.destination}</span><select value={selectedCity} onChange={(event) => setSelectedCity(event.target.value)} className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none dark:text-white"><option value="ALL">Vietnam</option>{cities.slice(1).map((city) => <option key={city}>{city}</option>)}</select></label>
             </div>
             <div className="flex items-center gap-3 rounded-xl px-3 py-2 md:border-r md:border-slate-200 dark:md:border-slate-700">
               <CalendarDays className="h-6 w-6 shrink-0 text-slate-800 dark:text-white" />
-              <div className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-slate-500">Check-in – Check-out</span><div className="flex items-center gap-1 text-xs font-bold"><input aria-label="Check-in" type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="min-w-0 bg-transparent outline-none" /><span>–</span><input aria-label="Check-out" type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="min-w-0 bg-transparent outline-none" /></div></div>
+              <div className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-slate-500">{ui.dates}</span><div className="flex items-center gap-1 text-xs font-bold"><input aria-label="Check-in" type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="min-w-0 bg-transparent outline-none" /><span>–</span><input aria-label="Check-out" type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="min-w-0 bg-transparent outline-none" /></div></div>
             </div>
             <label className="flex items-center gap-3 rounded-xl px-3 py-2"><Users className="h-6 w-6 shrink-0 text-slate-800 dark:text-white" /><span className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-slate-500">Guests</span><span className="flex items-center justify-between text-sm font-bold"><select value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="bg-transparent outline-none">{[1,2,3,4,5,6].map((guest) => <option key={guest} value={guest}>{guest} Adult{guest > 1 ? "s" : ""}</option>)}</select><ChevronDown className="h-4 w-4" /></span></span></label>
-            <button type="button" className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0668f7] px-8 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700"><Search className="h-5 w-5" />Search</button>
+            <button type="button" className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0668f7] px-8 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700"><Search className="h-5 w-5" />{ui.search}</button>
           </div>
         </section>
 
@@ -223,14 +228,14 @@ export default function HotelsExplorer() {
 
           <section className={mobileMap ? "hidden lg:block" : "block"}>
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-700 dark:text-slate-200"><strong className="text-blue-600">{hotels.length} properties</strong> found in {destinationLabel}</p>
+              <p className="text-sm text-slate-700 dark:text-slate-200"><strong className="text-blue-600">{hotels.length} {ui.properties}</strong> {ui.found} {destinationLabel}</p>
               <label className="flex items-center gap-2 text-xs text-slate-500">Sort by:<select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-bold text-slate-800 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"><option value="popular">Recommended</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="newest">Newest</option></select></label>
             </div>
 
             {loading ? (
               <div className="space-y-3">{[1,2,3,4].map((item) => <div key={item} className="h-44 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />)}</div>
             ) : hotels.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900"><Sparkles className="mx-auto mb-3 h-8 w-8 text-blue-500" /><p className="font-bold text-slate-900 dark:text-white">Không tìm thấy khách sạn phù hợp</p><button type="button" onClick={resetFilters} className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white">Xóa bộ lọc</button></div>
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900"><Sparkles className="mx-auto mb-3 h-8 w-8 text-blue-500" /><p className="font-bold text-slate-900 dark:text-white">{ui.empty}</p><button type="button" onClick={resetFilters} className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white">{ui.clear}</button></div>
             ) : (
               <div className="space-y-3">
                 {paginatedHotels.map((hotel, index) => {
@@ -238,16 +243,16 @@ export default function HotelsExplorer() {
                   const isSelected = hotel.id === selectedHotel?.id;
                   return (
                     <article key={hotel.id} onClick={() => setSelectedHotelId(hotel.id)} className={`group grid cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900 sm:grid-cols-[180px_minmax(0,1fr)_145px] ${isSelected ? "border-blue-500 ring-2 ring-blue-100 dark:ring-blue-950" : "border-slate-200 dark:border-slate-800"}`}>
-                      <div className="relative h-44 overflow-hidden bg-slate-100 sm:h-full dark:bg-slate-800"><Image src={image} alt={hotel.name} fill sizes="(max-width: 640px) 100vw, 180px" className="object-cover transition duration-500 group-hover:scale-105" />{index === 0 && <span className="absolute left-2 top-2 rounded-md bg-blue-600 px-2 py-1 text-[10px] font-bold text-white">Popular</span>}</div>
+                      <div className="relative h-44 overflow-hidden bg-slate-100 sm:h-full dark:bg-slate-800"><Image src={image} alt={hotel.name} fill sizes="(max-width: 640px) 100vw, 180px" className="object-cover transition duration-500 group-hover:scale-105" />{index === 0 && <span className="absolute left-2 top-2 rounded-md bg-blue-600 px-2 py-1 text-[10px] font-bold text-white">{ui.popular}</span>}</div>
                       <div className="min-w-0 p-4">
                         <Link href={`/${locale}/hotels/${hotel.slug || hotel.id}`} onClick={(event) => event.stopPropagation()} className="text-base font-extrabold text-slate-900 hover:text-blue-600 dark:text-white">{hotel.name}</Link>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs"><span className="flex text-blue-600">{Array.from({ length: 5 }).map((_, star) => <Star key={star} className={`h-3.5 w-3.5 ${star < Math.round(hotel.rating || 0) ? "fill-blue-600" : "text-slate-300"}`} />)}</span><strong>{hotel.rating?.toFixed(1) || "4.5"}</strong><span className="text-slate-500">({reviewCount(hotel).toLocaleString()} reviews)</span></div>
                         <p className="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300"><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{hotel.address || `${hotel.city}, ${hotel.country || "Vietnam"}`}</span></p>
-                        <p className="mt-2 text-xs font-medium text-emerald-600">● Free cancellation</p>
+                        <p className="mt-2 text-xs font-medium text-emerald-600">● {ui.cancel}</p>
                         <p className="mt-2 line-clamp-1 text-[11px] text-slate-600 dark:text-slate-300">{hotel.amenities?.slice(0,3).join(" · ") || "Free Wi-Fi · Breakfast Included · Swimming Pool"}</p>
                         <p className="mt-2 line-clamp-1 text-[11px] text-slate-500">{hotel.description || `Comfortable stay in the heart of ${hotel.city}.`}</p>
                       </div>
-                      <div className="relative flex flex-col justify-center border-t border-slate-100 p-4 sm:border-l sm:border-t-0 dark:border-slate-800"><button type="button" aria-label="Save hotel" onClick={(event) => { event.stopPropagation(); toggleFavorite(hotel.id); }} className="absolute right-3 top-3 text-slate-400 transition hover:text-rose-500"><Heart className={`h-5 w-5 ${favorites.includes(hotel.id) ? "fill-rose-500 text-rose-500" : ""}`} /></button><span className="text-xs text-slate-500">From</span><strong className="mt-1 text-xl text-blue-600">{vnd(hotel.pricePerNight)}</strong><span className="text-right text-xs text-slate-500">/ night incl. taxes</span><button type="button" onClick={(event) => { event.stopPropagation(); setBookingHotel(hotel); }} className="mt-4 rounded-lg bg-[#0668f7] px-3 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700">Book Now</button></div>
+                      <div className="relative flex flex-col justify-center border-t border-slate-100 p-4 sm:border-l sm:border-t-0 dark:border-slate-800"><button type="button" aria-label="Save hotel" onClick={(event) => { event.stopPropagation(); toggleFavorite(hotel.id); }} className="absolute right-3 top-3 text-slate-400 transition hover:text-rose-500"><Heart className={`h-5 w-5 ${favorites.includes(hotel.id) ? "fill-rose-500 text-rose-500" : ""}`} /></button><span className="text-xs text-slate-500">{ui.from}</span><strong className="mt-1 text-xl text-blue-600">{vnd(hotel.pricePerNight)}</strong><span className="text-right text-xs text-slate-500">{ui.night}</span><button type="button" onClick={(event) => { event.stopPropagation(); setBookingHotel(hotel); }} className="mt-4 rounded-lg bg-[#0668f7] px-3 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700">{ui.book}</button></div>
                     </article>
                   );
                 })}

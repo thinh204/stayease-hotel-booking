@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, BadgeCheck, CircleDollarSign, Headphones, ShieldCheck } from "lucide-react";
 import HotelCard from "@/components/hotels/HotelCard";
 import BookingModal from "@/components/hotels/BookingModal";
+import { useTranslations } from "next-intl";
 
 export default function FeaturedHotels() {
+  const t = useTranslations("Public");
   const pathname = usePathname();
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
 
@@ -84,10 +86,10 @@ export default function FeaturedHotels() {
         <div className="flex items-end justify-between">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-serif">
-              Featured Hotels
+              {t("featuredTitle")}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              Handpicked properties with excellent reviews and great locations.
+              {t("featuredDescription")}
             </p>
           </div>
 
@@ -95,7 +97,7 @@ export default function FeaturedHotels() {
             href={`/${currentLocale}/hotels`}
             className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
           >
-            <span>View all hotels</span>
+            <span>{t("viewAllHotels")}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -124,10 +126,10 @@ export default function FeaturedHotels() {
       <div className="mt-8 border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-slate-200 px-4 py-4 dark:divide-slate-800 lg:grid-cols-4">
           {[
-            { icon: ShieldCheck, title: "Trusted Booking", text: "Secure & reliable" },
-            { icon: CircleDollarSign, title: "Best Price Guarantee", text: "We match & beat prices" },
-            { icon: Headphones, title: "24/7 Support", text: "We're here to help" },
-            { icon: BadgeCheck, title: "Verified Reviews", text: "Real guests, real feedback" },
+            { icon: ShieldCheck, title: t("trustedBooking"), text: t("trustedBookingDesc") },
+            { icon: CircleDollarSign, title: t("bestPrice"), text: t("bestPriceDesc") },
+            { icon: Headphones, title: t("support247"), text: t("support247Desc") },
+            { icon: BadgeCheck, title: t("verifiedReviews"), text: t("verifiedReviewsDesc") },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="flex items-center gap-3 px-3 py-2 sm:px-6">
               <Icon className="h-8 w-8 flex-none text-blue-600" strokeWidth={1.7} />

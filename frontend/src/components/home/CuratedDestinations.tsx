@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const destinations = [
   { city: "Da Nang", count: 128, image: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=700&auto=format&fit=crop&q=85" },
@@ -15,6 +16,7 @@ const destinations = [
 ];
 
 export default function CuratedDestinations() {
+  const t = useTranslations("Public");
   const pathname = usePathname();
   const locale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
 
@@ -22,8 +24,8 @@ export default function CuratedDestinations() {
     <section className="bg-white py-9 dark:bg-slate-900">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-extrabold tracking-tight text-[#0b1f44] dark:text-white">Popular Destinations in Vietnam</h2>
-          <Link href={`/${locale}/destinations`} className="hidden items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 sm:flex">View all destinations <ArrowRight size={15} /></Link>
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#0b1f44] dark:text-white">{t("popularDestinations")}</h2>
+          <Link href={`/${locale}/destinations`} className="hidden items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 sm:flex">{t("viewAllDestinations")} <ArrowRight size={15} /></Link>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {destinations.map((destination) => (
@@ -31,7 +33,7 @@ export default function CuratedDestinations() {
               <div className="relative h-32 overflow-hidden sm:h-36">
                 <Image src={destination.image} alt={destination.city} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" className="object-cover transition duration-500 group-hover:scale-105" />
               </div>
-              <div className="px-3 py-2.5"><h3 className="font-bold text-slate-900 dark:text-white">{destination.city}</h3><p className="text-xs text-slate-500">{destination.count} hotels</p></div>
+              <div className="px-3 py-2.5"><h3 className="font-bold text-slate-900 dark:text-white">{destination.city}</h3><p className="text-xs text-slate-500">{t("hotelCount", {count: destination.count})}</p></div>
             </Link>
           ))}
         </div>

@@ -4,8 +4,10 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Compass, MapPin, ArrowRight, Building2, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function DestinationsPage() {
+  const t = useTranslations("Public");
   const pathname = usePathname();
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
 
@@ -13,44 +15,44 @@ export default function DestinationsPage() {
     {
       city: "Da Nang",
       country: "Vietnam",
-      tag: "Coastal Luxury",
+      tag: t("tag1"),
       image: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=800&auto=format&fit=crop&q=80",
-      description: "Pristine white sand beaches, world-renowned marble mountains, and cliffside infinity pool resorts.",
+      description: t("desc1"),
     },
     {
       city: "Hanoi",
       country: "Vietnam",
-      tag: "Heritage & Culture",
+      tag: t("tag2"),
       image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&auto=format&fit=crop&q=80",
-      description: "Colonial Indochine grandeur, ancient Old Quarter streets, and serene lakefront heritage suites.",
+      description: t("desc2"),
     },
     {
       city: "Seoul",
       country: "South Korea",
-      tag: "Futuristic Skyline",
+      tag: t("tag3"),
       image: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&auto=format&fit=crop&q=80",
-      description: "Ultra-modern Gangnam high-rise penthouses, Michelin culinary excellence, and vibrant luxury shopping.",
+      description: t("desc3"),
     },
     {
       city: "Kyoto",
       country: "Japan",
-      tag: "Zen Gardens & Onsen",
+      tag: t("tag4"),
       image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop&q=80",
-      description: "Centuries-old bamboo groves, private cedar onsen hot springs, and serene traditional ryokans.",
+      description: t("desc4"),
     },
     {
       city: "Paris",
       country: "France",
-      tag: "Haute Couture & Romance",
+      tag: t("tag5"),
       image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
-      description: "Place Vendôme royal suites, Seine riverfront views, and timeless Parisian haute hospitality.",
+      description: t("desc5"),
     },
     {
       city: "Bangkok",
       country: "Thailand",
-      tag: "Riverfront Royalty",
+      tag: t("tag6"),
       image: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&auto=format&fit=crop&q=80",
-      description: "Chao Phraya private yacht charters, golden temples, and world-class rooftop sanctuaries.",
+      description: t("desc6"),
     },
   ];
 
@@ -60,13 +62,13 @@ export default function DestinationsPage() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-blue-600 dark:text-blue-400">
             <Compass size={15} />
-            <span>Curated Travel Guide</span>
+            <span>{t("destinationsEyebrow")}</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight font-heading">
-            World-Class Destinations
+            {t("destinationsHeading")}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
-            Explore our curated destinations across Asia and Europe.
+            {t("destinationsDescription")}
           </p>
         </div>
 
@@ -101,7 +103,7 @@ export default function DestinationsPage() {
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400">
-                  <span>Explore Properties</span>
+                  <span>{t("explore")}</span>
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>

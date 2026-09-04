@@ -71,6 +71,10 @@ export default function CustomerSignUp() {
         facebookUnavailable: "Đăng nhập Facebook chưa được cấu hình. Hãy thêm Facebook App ID và App Secret vào backend trước.",
         googleUnavailable: "Đăng nhập Google chưa được cấu hình. Hãy thêm Google Client ID và Client Secret vào backend trước.",
       }
+    : locale === "ko"
+    ? {
+        title: "계정 만들기", subtitle: "StayEase에 가입하고 예약을 시작하세요", name: "이름", email: "이메일 주소", password: "비밀번호", confirm: "비밀번호 확인", agree: "동의합니다:", terms: "이용약관 및 개인정보 처리방침", create: "계정 만들기", creating: "계정 생성 중...", social: "또는 소셜 계정으로 가입", existing: "이미 계정이 있으신가요?", signIn: "로그인", passwordError: "비밀번호가 일치하지 않습니다.", termsError: "계속하려면 약관에 동의해 주세요.", facebookUnavailable: "Facebook 로그인이 아직 설정되지 않았습니다.", googleUnavailable: "Google 로그인이 아직 설정되지 않았습니다.",
+      }
     : {
         title: "Create your account",
         subtitle: "Join StayEase and start booking",

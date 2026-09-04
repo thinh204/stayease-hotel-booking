@@ -4,38 +4,40 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sparkles, Tag, ArrowRight, ShieldCheck, Clock, Percent } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function DealsPage() {
+  const t = useTranslations("Public");
   const pathname = usePathname();
   const currentLocale = pathname.match(/^\/(en|vi|ko)(?=\/|$)/)?.[1] ?? "en";
 
   const offers = [
     {
-      title: "Indochine Heritage Summer Escape",
+      title: t("offer1Title"),
       hotel: "Grand Bay Da Nang & Imperial Citadel Hanoi",
-      discount: "Save 25%",
+      discount: t("save", {percent: 25}),
       code: "SUMMER25",
       validUntil: "Sept 30, 2026",
       image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80",
-      description: "Enjoy 4 nights in a beachfront villa with complimentary daily spa treatments and private airport transfers.",
+      description: t("offer1Description"),
     },
     {
-      title: "Romantic Parisian Honeymoon Suite Package",
+      title: t("offer2Title"),
       hotel: "Le Palais Royal Vendôme Paris",
-      discount: "Save 30%",
+      discount: t("save", {percent: 30}),
       code: "HONEYMOON30",
       validUntil: "Oct 15, 2026",
       image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
-      description: "Includes Dom Pérignon champagne upon arrival, private balcony breakfast over the Seine, and Michelin dinner for two.",
+      description: t("offer2Description"),
     },
     {
-      title: "Kyoto Autumn Zen & Onsen Retreat",
+      title: t("offer3Title"),
       hotel: "Kyoto Zen Garden Ryokan",
-      discount: "Save 20%",
+      discount: t("save", {percent: 20}),
       code: "ZENAUTUMN",
       validUntil: "Nov 30, 2026",
       image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&auto=format&fit=crop&q=80",
-      description: "Private cedar hot spring bath access, seasonal Kaiseki dining experience, and traditional tea ceremony masterclass.",
+      description: t("offer3Description"),
     },
   ];
 
@@ -45,13 +47,13 @@ export default function DealsPage() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-blue-600 dark:text-blue-400">
             <Percent size={15} />
-            <span>Exclusive Privileges</span>
+            <span>{t("dealsEyebrow")}</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight font-heading">
-            Curated Luxury Offers & Deals
+            {t("dealsHeading")}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
-            Limited-edition packages curated exclusively for StayEase VIP Members.
+            {t("dealsDescription")}
           </p>
         </div>
 
@@ -89,7 +91,7 @@ export default function DealsPage() {
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-mono">Promo Code:</span>
+                    <span className="text-slate-400 font-mono">{t("promoCode")}</span>
                     <span className="font-mono font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
                       {offer.code}
                     </span>
@@ -99,7 +101,7 @@ export default function DealsPage() {
                     href={`/${currentLocale}/hotels`}
                     className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold text-center block transition shadow-md shadow-blue-500/20"
                   >
-                    Claim Offer
+                    {t("claim")}
                   </Link>
                 </div>
               </div>
