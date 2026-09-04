@@ -132,14 +132,14 @@ export default function CustomerSignUp() {
     finally { setLoading(false); }
   };
 
-  if (otpChallenge) return <section className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#eef8ff,white_55%,#edf6ff)] px-4 py-10 text-slate-900">
+  if (otpChallenge) return <section className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,#eef8ff,white_55%,#edf6ff)] px-4 py-10 text-slate-900 dark:bg-[radial-gradient(circle_at_top,#172554,#020617_55%,#0f172a)] dark:text-white">
     <div className="w-full max-w-xl text-center">
       <Link href={`/${locale}`} className="inline-flex"><Image src="/icons/logo.svg" alt="StayEase" width={250} height={60} priority /></Link>
-      <div className="mt-10 rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,.14)] sm:p-12">
-        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-blue-50 text-blue-600"><ShieldCheck className="h-10 w-10" /></div>
-        <h1 className="mt-5 text-3xl font-extrabold text-[#0b2a55] sm:text-4xl">{otpChannel === "email" ? "Xác thực email" : "Xác thực số điện thoại"}</h1>
+      <div className="mt-10 rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_24px_70px_rgba(15,23,42,.14)] dark:border-slate-700 dark:bg-slate-900 sm:p-12">
+        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950"><ShieldCheck className="h-10 w-10" /></div>
+        <h1 className="mt-5 text-3xl font-extrabold text-[#0b2a55] dark:text-white sm:text-4xl">{otpChannel === "email" ? "Xác thực email" : "Xác thực số điện thoại"}</h1>
         <p className="mt-2 text-slate-500">Chúng tôi đã gửi mã gồm 6 chữ số đến <strong>{otpDestination}</strong></p>
-        {devOtp && <p className="mt-3 rounded-lg bg-amber-50 py-2 text-sm font-bold text-amber-700">Mã thử nghiệm local: {devOtp}</p>}
+        {devOtp && <p className="mt-3 rounded-lg bg-amber-50 py-2 text-sm font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">Mã thử nghiệm local: {devOtp}</p>}
         {error && <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
         <div className="mt-7"><OtpCodeInput value={otp} onChange={setOtp} disabled={loading} /></div>
         <button type="button" onClick={verifyOtp} disabled={loading || otp.length !== 6} className="mt-7 h-14 w-full rounded-xl bg-gradient-to-r from-[#1688f5] to-[#0875df] text-lg font-bold text-white shadow-lg shadow-blue-500/20 disabled:opacity-50">{loading ? "Đang xác thực..." : "Xác thực"}</button>
@@ -153,16 +153,16 @@ export default function CustomerSignUp() {
     <section className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[#eef7ff] text-slate-900 dark:bg-slate-950 dark:text-white">
       <Image src={authImage} alt="Luxury StayEase resort beside a tropical pool" fill priority sizes="100vw" className="object-cover object-center" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/70 to-white/95 dark:from-slate-950/50 dark:via-slate-950/75 dark:to-slate-950/95" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#eaf5ff]/45 via-transparent to-white/15" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#eaf5ff]/45 via-transparent to-white/15 dark:from-slate-950/80 dark:via-slate-950/20 dark:to-slate-950/30" />
 
       <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1440px] items-center gap-8 px-4 py-10 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:px-14 xl:gap-20 xl:px-20">
         <div className="hidden self-stretch lg:flex lg:flex-col lg:justify-between lg:py-12">
-          <Link href={`/${locale}`} className="w-fit rounded-2xl bg-white/65 p-4 shadow-sm backdrop-blur-md">
+          <Link href={`/${locale}`} className="w-fit rounded-2xl bg-white/65 p-4 shadow-sm backdrop-blur-md dark:bg-slate-900/80">
             <Image src="/icons/logo.svg" alt="StayEase" width={260} height={56} priority />
-            <span className="mt-1 block text-center text-[11px] font-bold tracking-[.42em] text-slate-700">HOTEL BOOKINGS</span>
+            <span className="mt-1 block text-center text-[11px] font-bold tracking-[.42em] text-slate-700 dark:text-slate-300">HOTEL BOOKINGS</span>
           </Link>
-          <div className="max-w-sm rounded-2xl border border-white/50 bg-white/50 p-5 text-sm text-slate-700 shadow-lg backdrop-blur-md">
-            <p className="font-extrabold text-slate-900">Stay beautifully. Book effortlessly.</p>
+          <div className="max-w-sm rounded-2xl border border-white/50 bg-white/50 p-5 text-sm text-slate-700 shadow-lg backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
+            <p className="font-extrabold text-slate-900 dark:text-white">Stay beautifully. Book effortlessly.</p>
             <p className="mt-1 text-xs leading-5">Exclusive hotels, secure payments and dedicated support for every journey.</p>
           </div>
         </div>

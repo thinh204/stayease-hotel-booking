@@ -118,26 +118,26 @@ export default function HeroBanner() {
           className="h-full w-full object-cover object-center"
         />
         {/* Soft fading gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-slate-950/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-slate-950/10 dark:from-slate-950/45 dark:via-slate-950/30 dark:to-slate-950/70" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Left Heading & Subtitle */}
         <div className="mx-auto mb-8 max-w-3xl space-y-2 text-center">
-          <h1 className="text-4xl font-black tracking-tight text-[#081d42] drop-shadow-sm sm:text-5xl lg:text-[52px] lg:leading-tight">
+          <h1 className="text-4xl font-black tracking-tight text-[#081d42] drop-shadow-sm dark:text-white sm:text-5xl lg:text-[52px] lg:leading-tight">
             {t("title")}
           </h1>
-          <div className="text-base font-medium text-slate-700 sm:text-lg">
+          <div className="text-base font-medium text-slate-700 dark:text-slate-200 sm:text-lg">
             <p>{t("description")}</p>
           </div>
         </div>
 
         {/* Floating Search Card */}
-        <div className="mx-auto max-w-5xl rounded-2xl border border-white/70 bg-white/95 p-3 shadow-2xl shadow-slate-900/20 backdrop-blur-xl sm:p-4">
+        <div className="mx-auto max-w-5xl rounded-2xl border border-white/70 bg-white/95 p-3 text-slate-900 shadow-2xl shadow-slate-900/20 backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/95 dark:text-white sm:p-4">
           <form onSubmit={handleSearch} className="grid grid-cols-1 items-center gap-1 sm:grid-cols-2 lg:grid-cols-12">
             {/* 1. Destination (col-span-3) */}
-            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200">
-              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200 dark:lg:border-slate-700">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                 <MapPin className="h-5 w-5 text-blue-600" />
                 <span>{copy.destination}</span>
               </label>
@@ -158,8 +158,8 @@ export default function HeroBanner() {
             </div>
 
             {/* 2. Check-in (col-span-2) */}
-            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200">
-              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200 dark:lg:border-slate-700">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 <span>{copy.checkIn}</span>
               </label>
@@ -178,8 +178,8 @@ export default function HeroBanner() {
             </div>
 
             {/* 3. Check-out (col-span-2) */}
-            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200">
-              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+            <div className="px-3 py-2 lg:col-span-2 lg:border-r lg:border-slate-200 dark:lg:border-slate-700">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 <span>{copy.checkOut}</span>
               </label>
@@ -197,8 +197,8 @@ export default function HeroBanner() {
             </div>
 
             {/* 4. Guests (col-span-3) */}
-            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200">
-              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800">
+            <div className="px-3 py-2 lg:col-span-3 lg:border-r lg:border-slate-200 dark:lg:border-slate-700">
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                 <Users className="h-5 w-5 text-blue-600" />
                 <span>{copy.guests}</span>
               </label>
@@ -238,7 +238,7 @@ export default function HeroBanner() {
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {quickFilters.map(({ label, icon: Icon, city }) => (
-            <button key={label} type="button" onClick={() => setDestination(city)} className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600">
+            <button key={label} type="button" onClick={() => setDestination(city)} className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100 dark:hover:border-blue-500 dark:hover:text-blue-400">
               <Icon className="h-4 w-4 text-blue-600" />
               {label}
             </button>
