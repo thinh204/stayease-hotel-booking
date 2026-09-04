@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowRight, BadgeCheck, CalendarDays, Clock3, Headphones, Mail, MapPin, Quote, ShieldCheck, Star } from "lucide-react";
 import { useLocale } from "next-intl";
+import HomeTopContent from "@/components/home/HomeTopContent";
 
 const destinations = [
   ["Da Nang", 320, "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=900&auto=format&fit=crop&q=85"],
@@ -49,7 +50,9 @@ export default function CompactHome() {
   const submit = (event:FormEvent) => { event.preventDefault(); setDone(true); setEmail(""); };
   const Header = ({title, sub, href, action}:{title:string;sub:string;href:string;action:string}) => <div className="mb-3 flex items-end justify-between gap-4"><div><h2 className="text-xl font-black tracking-tight text-[#0b1f44] dark:text-white sm:text-2xl">{title}</h2><p className="text-xs text-slate-500 dark:text-slate-400">{sub}</p></div>{action && <Link href={href} className="hidden shrink-0 items-center gap-1 text-xs font-bold text-blue-600 hover:underline sm:flex">{action}<ArrowRight className="h-3.5 w-3.5" /></Link>}</div>;
 
-  return <div className="bg-white py-6 text-slate-900 dark:bg-slate-950 dark:text-white">
+  return <div className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
+    <HomeTopContent />
+    <div className="py-6">
     <div className="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
       <section><Header title={t.dest} sub={t.destSub} href={`/${locale}/destinations`} action={t.allDest} /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{destinations.map(([city,count,image])=><Link href={`/${locale}/hotels?city=${encodeURIComponent(city)}`} key={city} className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"><div className="relative h-24 overflow-hidden"><Image src={image} alt={city} fill sizes="220px" className="object-cover transition duration-500 group-hover:scale-110" /></div><div className="p-2.5"><h3 className="flex items-center gap-1 text-sm font-extrabold"><MapPin className="h-3.5 w-3.5" />{city}</h3><p className="mt-1 text-[11px] font-semibold text-blue-600">◉ {count}+ {t.hotels}</p></div></Link>)}</div></section>
 
@@ -64,6 +67,7 @@ export default function CompactHome() {
       <section><Header title={t.reviews} sub={t.reviewsSub} href={`/${locale}/support`} action={t.moreReviews} /><div className="grid gap-3 md:grid-cols-3">{reviews.map(([name,quote,avatar])=><article key={name} className="relative flex gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"><Image src={avatar} alt={name} width={42} height={42} className="h-10 w-10 rounded-full object-cover" /><div><h3 className="text-xs font-extrabold">{name}</h3><div className="my-0.5 flex text-blue-600">{[1,2,3,4,5].map(x=><Star key={x} className="h-3 w-3 fill-current" />)}</div><p className="pr-5 text-[10px] leading-snug text-slate-500">{quote}</p></div><Quote className="absolute bottom-2 right-3 h-5 w-5 fill-blue-600 text-blue-600" /></article>)}</div></section>
 
       <section className="overflow-hidden rounded-xl bg-gradient-to-r from-[#0759ae] via-[#0876d9] to-[#0759ae] p-3 text-white shadow-lg"><div className="flex flex-col items-center gap-3 sm:flex-row"><div className="flex flex-1 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/40"><Mail className="h-5 w-5" /></span><div><h2 className="text-base font-extrabold">{t.newsletter}</h2><p className="text-[11px] text-blue-100">{t.newsletterSub}</p></div></div><form onSubmit={submit} className="flex w-full gap-2 sm:w-auto"><input required type="email" value={email} onChange={e=>{setEmail(e.target.value);setDone(false)}} placeholder={done?t.done:t.email} className="min-w-0 flex-1 rounded-lg bg-white px-4 py-2 text-xs text-slate-900 outline-none sm:w-64" /><button className="rounded-lg bg-[#006cf5] px-5 py-2 text-xs font-bold shadow hover:bg-blue-500">{t.subscribe}</button></form></div></section>
+    </div>
     </div>
   </div>;
 }
