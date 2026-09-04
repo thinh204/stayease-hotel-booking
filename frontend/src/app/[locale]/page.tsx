@@ -4,6 +4,7 @@ import FeaturedHotels from "@/components/home/FeaturedHotels";
 import CuratedDestinations from "@/components/home/CuratedDestinations";
 import VipPerks from "@/components/home/VipPerks";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
+import ToursExperiences from "@/components/home/ToursExperiences";
 
 export default function HomePage() {
   return (
@@ -17,10 +18,13 @@ export default function HomePage() {
       {/* 3. Curated Global Travel Destinations */}
       <CuratedDestinations />
 
-      {/* 4. StayEase VIP Perks & Concierge Services */}
+      {/* 4. Tours and memorable local experiences */}
+      <ToursExperiences />
+
+      {/* 5. StayEase VIP Perks & Concierge Services */}
       <VipPerks />
 
-      {/* 5. World Traveler Testimonials */}
+      {/* 6. World Traveler Testimonials */}
       <TestimonialsSection />
     </div>
   );
